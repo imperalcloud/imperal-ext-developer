@@ -17,6 +17,16 @@ PIPE = asyncio.subprocess.PIPE
 # Make scripts importable for R11 check
 sys.path.insert(0, "/home/imperal-platform-worker/scripts")
 
+# I-FIRSTPARTY-ADMIN-ONLY-CLAIM (2026-05-09): system-tier first-party
+# extensions Admin can re-deploy through the canonical Dev Portal flow.
+# Sharelock is intentionally NOT here — it's an enterprise/agency-tier
+# product with its own deploy lifecycle. When the deployed dir at
+# /opt/extensions/<app_id>/ exists without `.git/` (legacy hand-deploy),
+# admin re-deploy backs up the dir and clones from git_url, replacing
+# the legacy copy with the canonical git-managed copy.
+FIRSTPARTY_APP_IDS = {"admin", "automations", "billing", "developer", "hello-world"}
+FIRSTPARTY_BACKUP_DIR = "/opt/backups/extensions"
+
 
 # ---------------------------------------------------------------------------
 # Param models
@@ -41,8 +51,20 @@ async def _git_remote_url(app_dir: str) -> str | None:
     return out.decode().strip() if proc.returncode == 0 else None
 
 
-async def _git_pull_or_clone(app_dir: str, git_url: str) -> tuple[str, str]:
-    """Clone or pull with smart directory handling."""
+async def _git_pull_or_clone(
+    app_dir: str,
+    git_url: str,
+    *,
+    caller_role: str = "developer",
+    app_id: str = "",
+) -> tuple[str, str]:
+    """Clone or pull with smart directory handling.
+
+    `caller_role` + `app_id` thread `I-FIRSTPARTY-ADMIN-ONLY-CLAIM`
+    through the squat-refuse branch: when an admin re-deploys a system
+    first-party extension whose dir exists without a `.git/` (legacy
+    hand-deploy shape), back up + clone instead of refusing.
+    """
     git_dir = os.path.join(app_dir, ".git")
 
     if os.path.isdir(git_dir):
@@ -118,15 +140,33 @@ async def _git_pull_or_clone(app_dir: str, git_url: str) -> tuple[str, str]:
 
     if os.path.isdir(app_dir):
         # Squatting defence: path exists but has no `.git` subdir.
-        # This is the shape of a first-party extension that was deployed
-        # via rsync/systemd (mail, notes, automations, web-tools, etc.).
-        # Refuse to backup-and-replace — that would let a rogue developer
-        # who registered a clashing app_id silently swap the first-party
-        # code with their own git repo at next worker restart.
-        return ("squatting_refused",
-                f"/opt/extensions/{os.path.basename(app_dir)} is already occupied by "
-                f"a non-developer-portal extension (no .git dir); refusing to deploy. "
-                f"Contact platform admin if you believe this is your app.")
+        # I-FIRSTPARTY-ADMIN-ONLY-CLAIM: when an admin re-deploys a
+        # system first-party extension, back up the legacy hand-deployed
+        # copy and continue to clone. For any other caller — refuse, so
+        # a third-party who registered a clashing app_id can never
+        # silently swap a first-party directory.
+        if caller_role == "admin" and app_id in FIRSTPARTY_APP_IDS:
+            import time as _time
+            import tarfile as _tarfile
+            os.makedirs(FIRSTPARTY_BACKUP_DIR, exist_ok=True)
+            ts = int(_time.time())
+            backup_path = os.path.join(FIRSTPARTY_BACKUP_DIR, f"{app_id}.{ts}.tar.gz")
+            try:
+                with _tarfile.open(backup_path, "w:gz") as tf:
+                    tf.add(app_dir, arcname=os.path.basename(app_dir))
+                shutil.rmtree(app_dir)
+                log.info(
+                    "I-FIRSTPARTY-ADMIN-ONLY-CLAIM: backed up %s to %s before clone",
+                    app_dir, backup_path,
+                )
+            except (OSError, _tarfile.TarError) as exc:
+                return ("backup_failed",
+                        f"Failed to back up legacy {app_dir} -> {backup_path}: {exc}")
+        else:
+            return ("squatting_refused",
+                    f"/opt/extensions/{os.path.basename(app_dir)} is already occupied by "
+                    f"a non-developer-portal extension (no .git dir); refusing to deploy. "
+                    f"Contact platform admin if you believe this is your app.")
 
     proc = await asyncio.create_subprocess_exec(
         "git", "clone", "--depth", "1", git_url, app_dir,
@@ -353,8 +393,14 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
 
     app_dir = os.path.join(EXTENSIONS_DIR, app_id)
 
+    # I-FIRSTPARTY-ADMIN-ONLY-CLAIM: thread caller role + app_id so the
+    # squat-refuse path can admin-bypass for first-party app_ids.
+    caller_role = getattr(ctx.user, "role", "developer")
+
     # Clone or pull
-    action, error = await _git_pull_or_clone(app_dir, git_url)
+    action, error = await _git_pull_or_clone(
+        app_dir, git_url, caller_role=caller_role, app_id=app_id,
+    )
 
     if action == "backup_failed":
         return ActionResult.error(error)
