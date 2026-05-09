@@ -355,22 +355,35 @@ async def _sync_panel_config_to_unified_config(app_id: str, app_dir: str) -> boo
         loader = ExtensionLoader(EXTENSIONS_DIR)
         ext = loader.load(app_id)
 
+        # SDK ALLOWED_PANEL_SLOTS: left, right, center, bottom, overlay, chat-sidebar.
+        # Previously this loop hardcoded ('left', 'right') and silently dropped
+        # any extension's center/bottom/overlay panels — they'd never show up
+        # in the Imperal Panel UI even though the extension registered them.
+        from imperal_sdk.types.contributions import ALLOWED_PANEL_SLOTS
+
         panels_by_slot: dict[str, tuple[str, dict]] = {}
         for name, meta in (ext.panels or {}).items():
             slot = meta.get("slot", "")
-            if slot in ("left", "right") and slot not in panels_by_slot:
+            if slot in ALLOWED_PANEL_SLOTS and slot not in panels_by_slot:
                 panels_by_slot[slot] = (name, meta)
 
         if not panels_by_slot:
-            return False  # no left/right panels declared — nothing to sync
+            return False  # no panels declared — nothing to sync
 
         ui_panels: dict[str, dict] = {}
-        default_icon = {"left": "Puzzle", "right": "Layout"}
+        default_icon = {
+            "left":         "Puzzle",
+            "right":        "Layout",
+            "center":       "LayoutDashboard",
+            "bottom":       "PanelBottom",
+            "overlay":      "Square",
+            "chat-sidebar": "MessageSquare",
+        }
         for slot, (name, meta) in panels_by_slot.items():
             ui_panels[slot] = {
                 "panel_id": name,
                 "title": meta.get("title") or name,
-                "icon": meta.get("icon") or default_icon[slot],
+                "icon": meta.get("icon") or default_icon.get(slot, "Square"),
             }
 
         payload = {"config": {"ui": {"panels": ui_panels}}}
