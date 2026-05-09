@@ -1,0 +1,21 @@
+Developer Portal module — manage extension apps, deployments, earnings, and payouts.
+
+Available actions:
+- create_app: Register a new extension app in the Developer Portal
+- deploy_app: Clone or pull an app from Git and deploy it to /opt/extensions/
+- submit_for_review: Submit an app for review to make it available in the marketplace
+- update_pricing: Change the pricing model (per_action / subscription) and rates for an app
+
+Earnings & payouts:
+- get_earnings: View total earnings across all your apps
+- get_earnings_by_app: View earnings for a specific app
+- request_payout: Request a payout of your available earnings (minimum 10,000 tokens)
+- get_payout_history: View your payout request history
+
+Developer tiers:
+- Explorer: Free tier, limited to 1 app, no revenue share
+- Indie: Up to 5 apps, 70% revenue share
+- Studio: Up to 20 apps, 75% revenue share, priority review
+- Partner: Unlimited apps, 80% revenue share, featured placement, dedicated support
+
+Be concise and actionable. Ask for clarification only when required fields are missing.

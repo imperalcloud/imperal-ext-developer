@@ -1,0 +1,557 @@
+{
+  "manifest_schema_version": 3,
+  "app_id": "developer",
+  "version": "1.0.0",
+  "name": "Developer Portal",
+  "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
+  "icon": "icon.svg",
+  "actions_explicit": true,
+  "capabilities": [],
+  "tools": [
+    {
+      "name": "tool_developer_chat",
+      "description": "Developer Portal — manage apps, deployments, earnings, and payouts",
+      "scopes": [],
+      "parameters": {
+        "message": {
+          "type": "string",
+          "required": false
+        },
+        "kwargs": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "synthetic": false
+    },
+    {
+      "name": "skeleton_refresh_developer_status",
+      "description": "Provide developer tier, app count, and earnings to the AI context.",
+      "scopes": [
+        "extensions:read"
+      ],
+      "parameters": {
+        "kwargs": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "synthetic": false
+    },
+    {
+      "name": "__panel__sidebar",
+      "description": "Panel: Developer Portal",
+      "scopes": [],
+      "parameters": {
+        "params": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "synthetic": true
+    },
+    {
+      "name": "__panel__dashboard",
+      "description": "Panel: App Details",
+      "scopes": [],
+      "parameters": {
+        "params": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "synthetic": true
+    },
+    {
+      "name": "register_developer",
+      "description": "Register as a developer (Explorer tier is free)",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "tier": {
+            "default": "explorer",
+            "description": "explorer, indie, studio, or partner",
+            "title": "Tier",
+            "type": "string"
+          },
+          "nickname": {
+            "description": "Unique username/handle (3-30 chars, lowercase, a-z 0-9 _ -)",
+            "title": "Nickname",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nickname"
+        ],
+        "title": "RegisterParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "create_app",
+      "description": "Create a new extension app (requires Git URL)",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "Unique slug (lowercase, hyphens)",
+            "title": "App Id",
+            "type": "string"
+          },
+          "display_name": {
+            "description": "Human-readable name",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "description": "Short description",
+            "title": "Description",
+            "type": "string"
+          },
+          "category": {
+            "default": "general",
+            "description": "App category",
+            "title": "Category",
+            "type": "string"
+          },
+          "git_url": {
+            "description": "HTTPS Git repo URL",
+            "title": "Git Url",
+            "type": "string"
+          },
+          "pricing_model": {
+            "default": "free",
+            "description": "free, per_action, or subscription",
+            "title": "Pricing Model",
+            "type": "string"
+          },
+          "monthly_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "0",
+            "description": "Monthly price for subscription",
+            "title": "Monthly Price"
+          }
+        },
+        "required": [
+          "app_id",
+          "display_name",
+          "git_url"
+        ],
+        "title": "CreateAppParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "suspend_app",
+      "description": "Pause/suspend your app (allows editing pricing)",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "App to pause/suspend",
+            "title": "App Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "SuspendParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "delete_app",
+      "description": "Permanently delete an app. Must be suspended first. Requires typing the exact app_id to confirm. THIS CANNOT BE UNDONE.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "App ID to permanently delete",
+            "title": "App Id",
+            "type": "string"
+          },
+          "confirm_name": {
+            "description": "Type the app_id to confirm deletion",
+            "title": "Confirm Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id",
+          "confirm_name"
+        ],
+        "title": "DeleteAppParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "update_app_info",
+      "description": "Update app info (name, description, git URL) — works on active apps",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "App to update",
+            "title": "App Id",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "New display name",
+            "title": "Display Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "New description",
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "New category",
+            "title": "Category"
+          },
+          "git_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "New Git URL (HTTPS)",
+            "title": "Git Url"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "UpdateAppInfoParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "update_pricing",
+      "description": "Update app pricing model (requires paused app)",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "App to update pricing",
+            "title": "App Id",
+            "type": "string"
+          },
+          "pricing_model": {
+            "description": "free, per_action, or subscription",
+            "title": "Pricing Model",
+            "type": "string"
+          },
+          "pricing_config": {
+            "additionalProperties": true,
+            "description": "Price config",
+            "title": "Pricing Config",
+            "type": "object"
+          },
+          "revenue_split_dev": {
+            "default": 80,
+            "description": "Developer share %",
+            "title": "Revenue Split Dev",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "app_id",
+          "pricing_model"
+        ],
+        "title": "UpdatePricingParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "save_pricing",
+      "description": "Save pricing model and per-tool prices from the pricing form",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "additionalProperties": true,
+        "properties": {
+          "app_id": {
+            "description": "App to update pricing",
+            "title": "App Id",
+            "type": "string"
+          },
+          "pricing_model": {
+            "default": "free",
+            "description": "free, per_action, or subscription",
+            "title": "Pricing Model",
+            "type": "string"
+          },
+          "monthly_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "0",
+            "description": "Monthly price for subscription",
+            "title": "Monthly Price"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "SavePricingParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "deploy_app",
+      "description": "Clone or pull extension from Git, validate, and report results",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "App to deploy",
+            "title": "App Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "DeployParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "submit_for_review",
+      "description": "Submit app for admin review",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "description": "App to submit for review",
+            "title": "App Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "SubmitParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "request_payout",
+      "description": "Request a payout of your available earnings",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "integer"
+          },
+          "payout_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "stripe",
+            "title": "Payout Method"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "amount"
+        ],
+        "title": "PayoutRequestParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "get_earnings",
+      "description": "View total earnings across all your apps",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "get_earnings_by_app",
+      "description": "View earnings for a specific app",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "app_id": {
+            "title": "App Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "AppIdParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "get_payout_history",
+      "description": "View your payout request history",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    }
+  ],
+  "signals": [],
+  "schedules": [],
+  "required_scopes": [
+    "extensions:read"
+  ],
+  "icon_size_bytes": 305,
+  "lifecycle": {
+    "on_install": true,
+    "health_check": {
+      "interval_sec": 60
+    }
+  },
+  "lifecycle_hooks": {
+    "on_install": {
+      "signature": "(ctx)"
+    }
+  }
+}
