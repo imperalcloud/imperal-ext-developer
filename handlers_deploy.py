@@ -65,6 +65,19 @@ async def _git_pull_or_clone(
     first-party extension whose dir exists without a `.git/` (legacy
     hand-deploy shape), back up + clone instead of refusing.
     """
+    # Pin git's safe.directory for this extension dir so files written
+    # by rsync/restore from a different uid (e.g. backup-and-restore
+    # paths, hand-edited copies) don't trip the dubious-ownership
+    # check at fetch/pull time. Idempotent — git silently dedups.
+    try:
+        _safe_proc = await asyncio.create_subprocess_exec(
+            "git", "config", "--global", "--add", "safe.directory", app_dir,
+            stdout=PIPE, stderr=PIPE,
+        )
+        await _safe_proc.communicate()
+    except Exception as exc:
+        log.warning("safe.directory pin failed for %s: %s", app_dir, exc)
+
     git_dir = os.path.join(app_dir, ".git")
 
     if os.path.isdir(git_dir):
