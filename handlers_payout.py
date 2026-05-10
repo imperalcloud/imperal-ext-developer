@@ -39,6 +39,7 @@ async def request_payout(ctx, params: PayoutRequestParams) -> ActionResult:
     return ActionResult.success(
         data=result,
         summary=f"Payout of {params.amount:,} tokens requested via {params.payout_method}.",
+    refresh_panels=["sidebar", "dashboard"],
     )
 
 

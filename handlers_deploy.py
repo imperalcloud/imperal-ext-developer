@@ -202,6 +202,7 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
               "panels_synced": panels_synced,
               "migrations_applied": migrations_applied},
         summary=summary,
+    refresh_panels=["sidebar", "dashboard"],
     )
 
 
@@ -216,6 +217,6 @@ async def submit_for_review(ctx, params: SubmitParams) -> ActionResult:
             checks = result.get("checks", [])
             failed = [c["check"] for c in checks if not c.get("ok") and not c.get("passed")]
             return ActionResult.error(f"Submission failed — fix: {', '.join(failed)}")
-        return ActionResult.success(data=result, summary=f"App '{params.app_id}' submitted for review.")
+        return ActionResult.success(data=result, summary=f"App '{params.app_id}' submitted for review.", refresh_panels=["sidebar", "dashboard"])
     except Exception as e:
         return ActionResult.error(f"Failed to submit: {e}")

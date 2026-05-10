@@ -157,6 +157,7 @@ async def delete_app(ctx, params: DeleteAppParams) -> ActionResult:
                         f"directory cleanup failed: {rm_err}. Manual "
                         f"cleanup required: rm -rf {ext_dir}"
                     ),
+                refresh_panels=["sidebar", "dashboard"],
                 )
     return ActionResult.success(
         data=result,
@@ -252,6 +253,7 @@ async def save_pricing(ctx, params: SavePricingParams) -> ActionResult:
         return ActionResult.success(
             data=result,
             summary=f"Pricing saved for '{params.app_id}': {', '.join(summary_parts)}",
+        refresh_panels=["sidebar", "dashboard"],
         )
     except Exception as e:
         return ActionResult.error(f"Failed to save pricing: {e}")
