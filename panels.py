@@ -78,4 +78,8 @@ async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kw
     except Exception:
         pass
 
-    return ui.Stack(children=children, gap=2)
+    # Auto-trigger center overlay (App Details dashboard) on first sidebar mount.
+    # federal v4.1.8 declarative center_overlay → chat shifts to 380px right rail.
+    root = ui.Stack(children=children, gap=2)
+    root.props["auto_action"] = ui.Call("__panel__dashboard")
+    return root

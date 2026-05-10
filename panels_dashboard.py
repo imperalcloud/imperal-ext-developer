@@ -40,7 +40,8 @@ def _field(label_text: str, placeholder: str, param_name: str, value: str = ""):
     ], gap=1)
 
 
-@ext.panel("dashboard", slot="right", title="App Details", icon="LayoutDashboard")
+@ext.panel("dashboard", slot="center", title="App Details", icon="LayoutDashboard",
+           center_overlay=True)  # federal v4.1.8 — chat shifts to 380px right rail
 async def developer_dashboard(ctx, app_id: str = "", tab: str = "overview",
                                period: str = "30d", view: str = "",
                                page: str = "0", section: str = "", **kwargs):
