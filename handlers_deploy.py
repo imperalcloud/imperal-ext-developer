@@ -380,11 +380,19 @@ async def _sync_panel_config_to_unified_config(app_id: str, app_dir: str) -> boo
             "chat-sidebar": "MessageSquare",
         }
         for slot, (name, meta) in panels_by_slot.items():
-            ui_panels[slot] = {
+            entry: dict = {
                 "panel_id": name,
                 "title": meta.get("title") or name,
                 "icon": meta.get("icon") or default_icon.get(slot, "Square"),
             }
+            # Forward width hints + center_overlay flag (federal v4.1.8 —
+            # replaces hardcoded TS isCenterOverlay allowlist).
+            for k in ("default_width", "min_width", "max_width"):
+                if k in meta:
+                    entry[k] = meta[k]
+            if meta.get("center_overlay"):
+                entry["center_overlay"] = True
+            ui_panels[slot] = entry
 
         payload = {"config": {"ui": {"panels": ui_panels}}}
         path = f"/v1/internal/config/app/{app_id}?tenant_id=default&app_id={app_id}"
