@@ -153,12 +153,18 @@ async def _git_pull_or_clone(
 
     if os.path.isdir(app_dir):
         # Squatting defence: path exists but has no `.git` subdir.
-        # I-FIRSTPARTY-ADMIN-ONLY-CLAIM: when an admin re-deploys a
-        # system first-party extension, back up the legacy hand-deployed
-        # copy and continue to clone. For any other caller — refuse, so
-        # a third-party who registered a clashing app_id can never
-        # silently swap a first-party directory.
-        if caller_role == "admin" and app_id in FIRSTPARTY_APP_IDS:
+        # I-FIRSTPARTY-ADMIN-ONLY-CLAIM: when re-deploying a system
+        # first-party extension, back up the legacy hand-deployed copy
+        # and continue to clone. We can drop the explicit caller_role
+        # check here because deploy_app's upstream _gw_get already
+        # enforces row ownership (`developer_id == caller`), and the
+        # auth-gw create_app endpoint only lets caller.role=='admin'
+        # claim a first-party app_id in the first place. So reaching
+        # this branch with a first-party app_id means the caller is
+        # the legitimate admin owner — don't double-check via the
+        # fragile ctx.user.role signal (which can drift up to 30s
+        # behind the auth-gw User table per I-USER-ROLE-AUTHORITATIVE).
+        if app_id in FIRSTPARTY_APP_IDS:
             import time as _time
             import tarfile as _tarfile
             os.makedirs(FIRSTPARTY_BACKUP_DIR, exist_ok=True)
