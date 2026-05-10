@@ -11,6 +11,8 @@ _TIER_COLORS = {"explorer": "gray", "indie": "blue", "studio": "purple", "partne
            default_width=300, min_width=240, max_width=400)
 async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kwargs):
     uid = _user_id(ctx)
+    # selected_app is passed through by the panel hook after a center-overlay
+    # render so the highlight follows the dashboard's current app.
     if selected_app:
         set_selected_app(uid, selected_app)
     active_app = selected_app or ""
@@ -39,7 +41,9 @@ async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kw
         ui.Badge(tier.title(), color=_TIER_COLORS.get(tier, "gray")),
     ]))
 
-    # App list
+    # App list — clicks go directly to the center dashboard so the workshop
+    # renders, while the hook's center→left passthrough keeps the highlight
+    # in sync (selected_app wired into this handler).
     try:
         apps = await _gw_get(f"/v1/developer/apps?user_id={uid}")
     except Exception:
@@ -56,7 +60,8 @@ async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kw
                 subtitle=aid,
                 badge=ui.Badge(status.replace("_", " ").title(), color=_STATUS_COLORS.get(status, "gray")),
                 selected=(aid == active_app),
-                on_click=ui.Call("__panel__sidebar", selected_app=aid, section=aid),
+                on_click=ui.Call("__panel__dashboard", app_id=aid, tab="overview",
+                                 period="30d", view="", page="0"),
             ))
         children.append(ui.Section(title=f"My Apps ({len(apps)})", children=[ui.List(items=items)]))
     else:

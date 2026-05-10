@@ -15,12 +15,15 @@ import re
 
 MAX_LINES = 300
 
+# NOTE: label strings MUST NOT contain literal eval(/exec(/os.system(/__import__(
+# substrings — the regexes below match their own labels when this file is
+# scanned. Use space-separated phrasing instead of paren syntax.
 _DANGER_PATTERNS = [
-    (r"\beval\s*\(", "eval() call"),
-    (r"\bexec\s*\(", "exec() call"),
-    (r"\bos\.system\s*\(", "os.system() call"),
+    (r"\beval\s*\(", "eval invocation"),
+    (r"\bexec\s*\(", "exec invocation"),
+    (r"\bos\.system\s*\(", "os.system invocation"),
     (r"subprocess\.(?:call|run|Popen)\s*\([^)]*shell\s*=\s*True", "subprocess with shell=True"),
-    (r"__import__\s*\(", "__import__() call"),
+    (r"__import__\s*\(", "dunder import invocation"),
     (r"""(?:password|secret|token|api_key)\s*=\s*["'][^"']{8,}["']""", "hardcoded secret"),
 ]
 
