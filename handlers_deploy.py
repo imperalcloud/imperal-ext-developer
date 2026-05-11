@@ -18,7 +18,7 @@ import logging
 from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
 
-from app import chat, _gw_get, _user_id, EXTENSIONS_DIR
+from app import chat, _gw_get, _gw_post, _user_id, EXTENSIONS_DIR
 from validation import validate_extension_full
 from deploy_git import _git_pull_or_clone
 from deploy_sync import (
@@ -148,9 +148,34 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
 
     tools_synced = 0
     panels_synced = False
+    icon_synced = False
     if deploy_status in ("passed", "warning"):
         tools_synced = await _sync_tools_to_registry(app_id, app_dir, owner_id=uid)
         panels_synced = await _sync_panel_config_to_unified_config(app_id, app_dir)
+        # B-icon-db (2026-05-11): persist icon.svg into developer_apps.icon_svg
+        # so the marketplace + sidebar can render it via
+        # GET /v1/marketplace/apps/{app_id}/icon (proxied through Next.js
+        # /api/extensions/{appId}/icon.svg). DB is the single source of
+        # truth — no filesystem sync between hosts. Failure here is
+        # non-fatal: the deploy still succeeded; icon just won't render
+        # until the next deploy retries.
+        icon_path = os.path.join(app_dir, "icon.svg")
+        if os.path.isfile(icon_path):
+            try:
+                with open(icon_path, "r", encoding="utf-8") as _icf:
+                    _icon_bytes = _icf.read()
+                # Bound the payload — federal manifests cap icons at ~64KB.
+                if 0 < len(_icon_bytes) <= 65536:
+                    _res = await _gw_post(
+                        f"/v1/developer/apps/{app_id}/_sync_manifest",
+                        {"icon_svg": _icon_bytes},
+                    )
+                    icon_synced = bool(_res.get("updated"))
+            except Exception as _icx:
+                log.warning(
+                    "B-icon-db sync failed for %s (non-fatal): %s",
+                    app_id, _icx,
+                )
 
     if manifest_app_id_mismatch is not None:
         checks.append({
@@ -189,6 +214,8 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         summary += f" {tools_synced} tools registered in catalog."
     if panels_synced:
         summary += " Panel config synced to unified_config."
+    if icon_synced:
+        summary += " Icon synced to DB."
     if migrations_applied:
         summary += f" Migrations replayed: {len(migrations_applied)}."
     if deploy_status == "failed" and llm_report:
@@ -200,6 +227,7 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         data={"app_id": app_id, "commit": commit_sha[:8], "status": deploy_status,
               "validation": f"{passed}/{total}", "tools_synced": tools_synced,
               "panels_synced": panels_synced,
+              "icon_synced": icon_synced,
               "migrations_applied": migrations_applied},
         summary=summary,
     refresh_panels=["sidebar", "dashboard"],
