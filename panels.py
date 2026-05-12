@@ -68,7 +68,7 @@ async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kw
         children.append(ui.Alert(title="No Apps Yet", message="Create your first extension.", type="info"))
 
     children.append(ui.Button(
-        label="+ New App", icon="Plus", variant="primary",
+        label="New App", icon="Plus", variant="primary",
         on_click=ui.Call("__panel__dashboard", app_id="", tab="", period="", view="create", page=""),
     ))
 
