@@ -1,16 +1,16 @@
 {
   "manifest_schema_version": 3,
   "app_id": "developer",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "name": "Developer Portal",
-  "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
+  "description": "Extension developer hub \u2014 publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
   "actions_explicit": true,
   "capabilities": [],
   "tools": [
     {
       "name": "tool_developer_chat",
-      "description": "Developer Portal — manage apps, deployments, earnings, and payouts",
+      "description": "Developer Portal \u2014 manage apps, deployments, earnings, and payouts",
       "scopes": [],
       "parameters": {
         "message": {
@@ -219,7 +219,7 @@
     },
     {
       "name": "update_app_info",
-      "description": "Update app info (name, description, git URL) — works on active apps",
+      "description": "Update app info (name, description, git URL) \u2014 works on active apps",
       "action_type": "write",
       "chain_callable": true,
       "effects": [],

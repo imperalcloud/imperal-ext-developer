@@ -149,6 +149,7 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     tools_synced = 0
     panels_synced = False
     icon_synced = False
+    manifest_synced = False
     if deploy_status in ("passed", "warning"):
         tools_synced = await _sync_tools_to_registry(app_id, app_dir, owner_id=uid)
         panels_synced = await _sync_panel_config_to_unified_config(app_id, app_dir)
@@ -175,6 +176,31 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
                 log.warning(
                     "B-icon-db sync failed for %s (non-fatal): %s",
                     app_id, _icx,
+                )
+
+        # EXT-SECRETS-V1 (2026-05-13): persist full imperal.json into
+        # developer_apps.manifest_json so /v1/secrets/* router can read
+        # secrets[] for I-SECRETS-CONTRACT-DECLARED enforcement. Without
+        # this sync, ctx.secrets.get() against any newly-deployed ext
+        # would 404 with SECRET_NOT_DECLARED even when the manifest
+        # declared the name. Non-fatal — deploy still succeeds.
+        manifest_path = os.path.join(app_dir, "imperal.json")
+        if os.path.isfile(manifest_path):
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as _mfp:
+                    _manifest_blob = _mfp.read()
+                # Soft sanity cap — auth-gw enforces 1 MB ceiling.
+                if 0 < len(_manifest_blob) <= 1_048_576:
+                    _res = await _gw_post(
+                        f"/v1/developer/apps/{app_id}/_sync_manifest",
+                        {"manifest_json": _manifest_blob},
+                    )
+                    manifest_synced = bool(_res.get("updated"))
+            except Exception as _mfx:
+                log.warning(
+                    "EXT-SECRETS-V1 manifest_json sync failed for %s "
+                    "(non-fatal): %s",
+                    app_id, _mfx,
                 )
 
     if manifest_app_id_mismatch is not None:
@@ -216,6 +242,8 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         summary += " Panel config synced to unified_config."
     if icon_synced:
         summary += " Icon synced to DB."
+    if manifest_synced:
+        summary += " Manifest synced to DB (secrets[] available)."
     if migrations_applied:
         summary += f" Migrations replayed: {len(migrations_applied)}."
     if deploy_status == "failed" and llm_report:
@@ -228,6 +256,7 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
               "validation": f"{passed}/{total}", "tools_synced": tools_synced,
               "panels_synced": panels_synced,
               "icon_synced": icon_synced,
+              "manifest_synced": manifest_synced,
               "migrations_applied": migrations_applied},
         summary=summary,
     refresh_panels=["sidebar", "dashboard"],
