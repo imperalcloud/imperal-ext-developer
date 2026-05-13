@@ -21,14 +21,34 @@ Uses only SDK ui.* primitives:
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
+import httpx
 from imperal_sdk import ui
 
 from app import _gw_get
 
 
 DOC_URL = "https://docs.imperal.io/en/sdk/decorator-secret-reference/"
+
+_AUTH_GW = os.getenv("IMPERAL_GATEWAY_URL", "http://104.224.88.155:8085")
+_SVC = os.getenv("IMPERAL_SERVICE_TOKEN", "")
+
+
+async def _gw_get_as_user(path: str, uid: str) -> Any:
+    """GET against auth-gw with X-Service-Token + X-Acting-User for the
+    given user. The shared httpx client in app.py only carries the service
+    token — secrets list endpoint needs both headers for proper scoping
+    (I-SECRETS-USER-SCOPED), otherwise the list comes back empty for the
+    fallback empty-string user."""
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.get(
+            f"{_AUTH_GW.rstrip('/')}{path}",
+            headers={"X-Service-Token": _SVC, "X-Acting-User": uid},
+        )
+    r.raise_for_status()
+    return r.json()
 
 
 async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
@@ -103,9 +123,12 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
         ], gap=2)
 
     # Fetch current is_set state for each declared secret in one shot.
+    # MUST use _gw_get_as_user(..., uid) — auth-gw scopes the list by user_id
+    # taken from X-Acting-User header; the default _gw_get only sends the
+    # service token and would land at empty-user scope returning no rows.
     statuses: dict[str, dict] = {}
     try:
-        live = await _gw_get(f"/v1/secrets/{app_id}")
+        live = await _gw_get_as_user(f"/v1/secrets/{app_id}", uid)
         if isinstance(live, list):
             for item in live:
                 if isinstance(item, dict) and item.get("name"):
