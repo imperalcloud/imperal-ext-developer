@@ -81,7 +81,7 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                     "never logged, never visible to admins."
                 )),
                 ui.Link(
-                    text="@ext.secret reference →",
+                    label="@ext.secret reference →",
                     href="https://docs.imperal.io/en/sdk/decorator-secret-reference/",
                 ),
             ]),
