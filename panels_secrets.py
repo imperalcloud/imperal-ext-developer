@@ -192,7 +192,7 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                 submit_label="Save" if not is_set else "Rotate",
                 defaults={"app_id": app_id, "name": name},
                 children=[
-                    ui.Input(
+                    ui.Password(
                         param_name="value",
                         placeholder="paste value…",
                     ),
