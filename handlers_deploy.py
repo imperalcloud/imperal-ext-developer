@@ -266,7 +266,6 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
 @chat.function("submit_for_review", action_type="write",
                description="Submit app for admin review")
 async def submit_for_review(ctx, params: SubmitParams) -> ActionResult:
-    from app import _gw_post
     uid = _user_id(ctx)
     try:
         result = await _gw_post(f"/v1/developer/apps/{params.app_id}/submit", {"user_id": uid})
