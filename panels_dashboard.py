@@ -4,6 +4,7 @@ from app import ext, _user_id, set_selected_app
 from panels_overview import build_overview
 from panels_pricing import build_pricing
 from panels_analytics import build_analytics
+from panels_secrets import build_secrets
 from panels_transactions import build_transactions
 from panels_earnings import build_earnings
 from panels_deploy import build_deploy
@@ -14,6 +15,7 @@ _TABS = [
     ("transactions", "Transactions",  "List"),
     ("pricing",      "Pricing",       "DollarSign"),
     ("earnings",     "Earnings",      "Wallet"),
+    ("secrets",      "Secrets",       "KeyRound"),
     ("deploy",       "Deploy",        "Rocket"),
 ]
 
@@ -21,6 +23,7 @@ _BUILDERS = {
     "overview": build_overview,
     "pricing": build_pricing,
     "analytics": build_analytics,
+    "secrets": build_secrets,
     "transactions": build_transactions,
     "earnings": build_earnings,
     "deploy": build_deploy,

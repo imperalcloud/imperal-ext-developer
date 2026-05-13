@@ -32,6 +32,7 @@ from app import ext, chat  # noqa: F401
 import handlers            # noqa: F401
 import handlers_deploy     # noqa: F401
 import handlers_payout     # noqa: F401
+import handlers_secrets    # noqa: F401  EXT-SECRETS-V1 Secrets tab handlers
 import skeleton            # noqa: F401
 import panels              # noqa: F401
 import panels_dashboard    # noqa: F401
