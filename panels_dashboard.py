@@ -5,6 +5,7 @@ from panels_overview import build_overview
 from panels_pricing import build_pricing
 from panels_analytics import build_analytics
 from panels_secrets import build_secrets
+from panels_webhooks import build_webhooks
 from panels_transactions import build_transactions
 from panels_earnings import build_earnings
 from panels_deploy import build_deploy
@@ -16,6 +17,7 @@ _TABS = [
     ("pricing",      "Pricing",       "DollarSign"),
     ("earnings",     "Earnings",      "Wallet"),
     ("secrets",      "Secrets",       "KeyRound"),
+    ("webhooks",     "Webhooks",      "Webhook"),
     ("deploy",       "Deploy",        "Rocket"),
 ]
 
@@ -24,6 +26,7 @@ _BUILDERS = {
     "pricing": build_pricing,
     "analytics": build_analytics,
     "secrets": build_secrets,
+    "webhooks": build_webhooks,
     "transactions": build_transactions,
     "earnings": build_earnings,
     "deploy": build_deploy,
