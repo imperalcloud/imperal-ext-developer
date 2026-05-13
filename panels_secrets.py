@@ -9,6 +9,14 @@ contract intact.
 
 If the app declares no secrets, shows an empty state with the canonical
 @ext.secret(...) code example so the developer knows how to declare one.
+
+Uses only SDK ui.* primitives:
+- ui.Card(title=, subtitle=, content=UINode)  — single content node, not list
+- ui.Text(content=, variant="body"/"caption"/"heading"/"code")
+- ui.Input(param_name=, placeholder=, value=)  — no type=, no name=
+- ui.Form(children=, action=, submit_label=, defaults=)  — defaults carries
+  hidden values (app_id, name) since there's no ui.Hidden primitive
+- ui.Link(label=, on_click=ui.Open(url=...))  — Open action opens new tab
 """
 from __future__ import annotations
 
@@ -18,6 +26,9 @@ from typing import Any
 from imperal_sdk import ui
 
 from app import _gw_get
+
+
+DOC_URL = "https://docs.imperal.io/en/sdk/decorator-secret-reference/"
 
 
 async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
@@ -61,30 +72,34 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                 title="No secrets declared in this app's manifest",
                 message=(
                     "This extension does not declare any @ext.secret(...) entries. "
-                    "Add a declaration to your app.py and redeploy to manage credentials here."
+                    "Add a declaration to your app.py and redeploy to manage "
+                    "credentials here."
                 ),
                 type="info",
             ),
-            ui.Section(title="How to declare a secret", children=[
-                ui.Markdown(content=(
-                    "```python\n"
-                    "ext.secret(\n"
-                    "    name=\"openai_api_key\",\n"
-                    "    description=\"Your OpenAI API key (sk-proj-...).\",\n"
-                    "    required=True,\n"
-                    "    write_mode=\"user\",       # user pastes via Panel\n"
-                    "    max_bytes=200,\n"
-                    ")(lambda: None)\n"
-                    "```\n"
-                    "After git push + Deploy, the field appears in this Secrets tab "
-                    "ready for value entry. Plaintext is encrypted in Vault transit; "
-                    "never logged, never visible to admins."
-                )),
-                ui.Link(
-                    label="@ext.secret reference →",
-                    href="https://docs.imperal.io/en/sdk/decorator-secret-reference/",
-                ),
-            ]),
+            ui.Card(
+                title="How to declare a secret",
+                content=ui.Stack(children=[
+                    ui.Code(content=(
+                        'ext.secret(\n'
+                        '    name="openai_api_key",\n'
+                        '    description="Your OpenAI API key (sk-proj-...).",\n'
+                        '    required=True,\n'
+                        '    write_mode="user",       # user pastes via Panel\n'
+                        '    max_bytes=200,\n'
+                        ')(lambda: None)'
+                    ), language="python"),
+                    ui.Text(content=(
+                        "After git push + Deploy, the field appears in this Secrets "
+                        "tab ready for value entry. Plaintext is encrypted in Vault "
+                        "transit; never logged, never visible to admins."
+                    )),
+                    ui.Link(
+                        label="@ext.secret reference →",
+                        on_click=ui.Open(url=DOC_URL),
+                    ),
+                ]),
+            ),
         ], gap=2)
 
     # Fetch current is_set state for each declared secret in one shot.
@@ -98,11 +113,11 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
     except Exception:
         statuses = {}
 
-    rows = [
+    rows: list[Any] = [
         ui.Alert(
             title=f"{len(declared)} secret(s) declared",
             message=(
-                "Paste each value below. Stored encrypted via Vault transit. "
+                "Paste each value below — stored encrypted via Vault transit. "
                 "Never visible to admins or in logs (federal I-SECRETS-NEVER-LOGGED)."
             ),
             type="info",
@@ -120,51 +135,45 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
         is_set = bool(st.get("is_set"))
         last_read = st.get("last_accessed_at")
 
-        # Header row with status badge
-        head_children = [
-            ui.Heading(text=name, level=3),
+        # Build the per-secret card body as a single Stack content node.
+        body_children: list[Any] = []
+
+        # Status line — name + badges
+        head_badges = [
             ui.Badge("Set" if is_set else "Not set",
                      color="green" if is_set else "gray"),
         ]
         if required:
-            head_children.append(ui.Badge("required", color="orange"))
+            head_badges.append(ui.Badge("required", color="orange"))
         if write_mode == "extension":
-            head_children.append(ui.Badge("ext-write only", color="blue"))
+            head_badges.append(ui.Badge("ext-write only", color="blue"))
+        body_children.append(ui.Stack(direction="h", gap=1, children=head_badges))
 
-        # Description + meta
-        meta_lines = []
         if desc:
-            meta_lines.append(ui.Text(desc))
+            body_children.append(ui.Text(content=desc))
         if rotation_hint:
-            meta_lines.append(ui.Text(
-                f"Recommended rotation: every {rotation_hint} day(s).",
-                color="muted",
+            body_children.append(ui.Text(
+                content=f"Recommended rotation: every {rotation_hint} day(s).",
+                variant="caption",
             ))
         if last_read:
-            meta_lines.append(ui.Text(
-                f"Last read: {last_read}", color="muted",
+            body_children.append(ui.Text(
+                content=f"Last read: {last_read}", variant="caption",
             ))
 
-        # Form: ALWAYS show input for user/both modes (auto-expanded — no
-        # extra click needed). For extension-write-only, show informational
-        # block instead since dev can't enter from here.
-        card_children = [
-            ui.Stack(direction="h", gap=1, children=head_children),
-            *meta_lines,
-        ]
-
         if write_mode == "extension":
-            card_children.append(ui.Alert(
+            # Extension writes this itself; show info + Clear button if set.
+            body_children.append(ui.Alert(
                 title="Extension writes this value",
                 message=(
                     "This secret has write_mode='extension' — the extension itself "
                     "writes the value (e.g. OAuth refresh tokens written after the "
-                    "user authorizes via the provider). You cannot paste a value here."
+                    "user authorizes via the provider). You can't paste a value here."
                 ),
                 type="info",
             ))
             if is_set:
-                card_children.append(ui.Button(
+                body_children.append(ui.Button(
                     label="Clear (revoke)",
                     variant="danger",
                     size="sm",
@@ -174,23 +183,23 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                     ),
                 ))
         else:
-            # User-writable: render Form with inline password input
-            card_children.append(ui.Form(
+            # User-writable: render Form with inline value input. The Form
+            # `defaults` dict carries app_id + name as hidden values that
+            # ride into save_app_secret action alongside the user-entered
+            # value (no ui.Hidden primitive exists in SDK 4.2.x).
+            body_children.append(ui.Form(
                 action="save_app_secret",
                 submit_label="Save" if not is_set else "Rotate",
+                defaults={"app_id": app_id, "name": name},
                 children=[
-                    ui.Hidden(name="app_id", value=app_id),
-                    ui.Hidden(name="name", value=name),
                     ui.Input(
-                        name="value",
-                        type="password",
+                        param_name="value",
                         placeholder="paste value…",
-                        autocomplete="new-password",
                     ),
                 ],
             ))
             if is_set:
-                card_children.append(ui.Button(
+                body_children.append(ui.Button(
                     label="Delete value",
                     variant="danger",
                     size="sm",
@@ -201,8 +210,14 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                 ))
 
         rows.append(ui.Card(
-            title="",  # title already in head row
-            children=card_children,
+            title=name,
+            subtitle=desc if not desc or len(desc) < 80 else desc[:77] + "…",
+            content=ui.Stack(children=body_children, gap=1),
         ))
+
+    rows.append(ui.Link(
+        label="📖 @ext.secret reference (docs.imperal.io) →",
+        on_click=ui.Open(url=DOC_URL),
+    ))
 
     return ui.Stack(children=rows, gap=2)
