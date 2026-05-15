@@ -63,6 +63,22 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     # squat-refuse path can admin-bypass for first-party app_ids.
     caller_role = getattr(ctx.user, "role", "developer")
 
+    # Federal invariant I-DEPLOY-VALIDATION-HARD-BLOCK — capture previous
+    # HEAD so we can roll back on validation failure. None for first-clone
+    # (directory doesn't exist or has no .git).
+    prev_sha: str | None = None
+    if os.path.isdir(os.path.join(app_dir, ".git")):
+        try:
+            _prev_proc = await asyncio.create_subprocess_exec(
+                "git", "-C", app_dir, "rev-parse", "HEAD",
+                stdout=PIPE, stderr=PIPE,
+            )
+            _prev_out, _ = await _prev_proc.communicate()
+            if _prev_proc.returncode == 0:
+                prev_sha = _prev_out.decode().strip()[:40] or None
+        except Exception:
+            prev_sha = None
+
     action, error = await _git_pull_or_clone(
         app_dir, git_url, caller_role=caller_role, app_id=app_id,
     )
@@ -132,18 +148,52 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     total = report["total"]
     deploy_status = report["status"]
 
-    # On critical failure, revert code
-    if deploy_status == "failed":
-        critical = [c for c in checks if not c.get("passed") and c.get("name") == "syntax"]
-        if critical:
-            await asyncio.create_subprocess_exec(
-                "git", "-C", app_dir, "checkout", ".", stdout=PIPE, stderr=PIPE)
-
     db_status = {"passed": "success", "warning": "warning", "failed": "failed"}
 
     validation_json = json.dumps({
         "checks": checks, "passed": passed, "total": total,
     })
+
+    # Federal invariant I-DEPLOY-VALIDATION-HARD-BLOCK — real rollback +
+    # early-return on validator failure. Worker processes must never
+    # see broken code at /opt/extensions/<app_id>/.
+    if deploy_status == "failed":
+        rollback_action: str
+        if prev_sha:
+            try:
+                _rb_proc = await asyncio.create_subprocess_exec(
+                    "git", "-C", app_dir, "reset", "--hard", prev_sha,
+                    stdout=PIPE, stderr=PIPE,
+                )
+                await _rb_proc.communicate()
+                rollback_action = f"rolled-back-to-{prev_sha[:8]}"
+            except Exception as _rb_err:
+                log.error("rollback git reset failed: %s", _rb_err)
+                rollback_action = "rollback-failed"
+        else:
+            try:
+                shutil.rmtree(app_dir, ignore_errors=True)
+                rollback_action = "removed-first-clone"
+            except Exception as _rm_err:
+                log.error("rollback rmtree failed: %s", _rm_err)
+                rollback_action = "rollback-failed"
+
+        await _record_deploy(
+            uid, app_id, commit_sha,
+            db_status.get(deploy_status, deploy_status),
+            validation_json,
+        )
+
+        llm_report = report.get("llm_report", "")
+        error_summary = (
+            f"{app_id} deploy REJECTED at {commit_sha[:8]} — "
+            f"{passed}/{total} checks. {rollback_action}."
+        )
+        if llm_report:
+            error_summary += "\n\n" + llm_report
+
+        return ActionResult.error(error_summary, retryable=False)
+
     await _record_deploy(uid, app_id, commit_sha, db_status.get(deploy_status, deploy_status), validation_json)
 
     tools_synced = 0
