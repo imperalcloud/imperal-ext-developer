@@ -23,7 +23,7 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # ---------------------------------------------------------------------------
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
-ext = Extension("developer", version="1.4.0",
+ext = Extension("developer", version="1.4.1",
     display_name='Developer Portal',
     description=(
         'Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.'
@@ -32,8 +32,8 @@ ext = Extension("developer", version="1.4.0",
     actions_explicit=True,
 )
 chat = ChatExtension(
-    ext=ext,
-    tool_name="tool_developer_chat",
+    ext,
+    "tool_developer_chat",
     description="Developer Portal — manage apps, deployments, earnings, and payouts",
     system_prompt=SYSTEM_PROMPT,
 )
