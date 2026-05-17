@@ -38,10 +38,6 @@ class DeployParams(BaseModel):
     app_id: str = Field(..., description="App to deploy")
 
 
-class SubmitParams(BaseModel):
-    app_id: str = Field(..., description="App to submit for review")
-
-
 @chat.function("deploy_app", action_type="write",
                description="Clone or pull extension from Git, validate, and report results")
 async def deploy_app(ctx, params: DeployParams) -> ActionResult:
@@ -203,55 +199,12 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     if deploy_status in ("passed", "warning"):
         tools_synced = await _sync_tools_to_registry(app_id, app_dir, owner_id=uid)
         panels_synced = await _sync_panel_config_to_unified_config(app_id, app_dir)
-        # B-icon-db (2026-05-11): persist icon.svg into developer_apps.icon_svg
-        # so the marketplace + sidebar can render it via
-        # GET /v1/marketplace/apps/{app_id}/icon (proxied through Next.js
-        # /api/extensions/{appId}/icon.svg). DB is the single source of
-        # truth — no filesystem sync between hosts. Failure here is
-        # non-fatal: the deploy still succeeded; icon just won't render
-        # until the next deploy retries.
-        icon_path = os.path.join(app_dir, "icon.svg")
-        if os.path.isfile(icon_path):
-            try:
-                with open(icon_path, "r", encoding="utf-8") as _icf:
-                    _icon_bytes = _icf.read()
-                # Bound the payload — federal manifests cap icons at ~64KB.
-                if 0 < len(_icon_bytes) <= 65536:
-                    _res = await _gw_post(
-                        f"/v1/developer/apps/{app_id}/_sync_manifest",
-                        {"icon_svg": _icon_bytes},
-                    )
-                    icon_synced = bool(_res.get("updated"))
-            except Exception as _icx:
-                log.warning(
-                    "B-icon-db sync failed for %s (non-fatal): %s",
-                    app_id, _icx,
-                )
-
-        # EXT-SECRETS-V1 (2026-05-13): persist full imperal.json into
-        # developer_apps.manifest_json so /v1/secrets/* router can read
-        # secrets[] for I-SECRETS-CONTRACT-DECLARED enforcement. Without
-        # this sync, ctx.secrets.get() against any newly-deployed ext
-        # would 404 with SECRET_NOT_DECLARED even when the manifest
-        # declared the name. Non-fatal — deploy still succeeds.
-        manifest_path = os.path.join(app_dir, "imperal.json")
-        if os.path.isfile(manifest_path):
-            try:
-                with open(manifest_path, "r", encoding="utf-8") as _mfp:
-                    _manifest_blob = _mfp.read()
-                # Soft sanity cap — auth-gw enforces 1 MB ceiling.
-                if 0 < len(_manifest_blob) <= 1_048_576:
-                    _res = await _gw_post(
-                        f"/v1/developer/apps/{app_id}/_sync_manifest",
-                        {"manifest_json": _manifest_blob},
-                    )
-                    manifest_synced = bool(_res.get("updated"))
-            except Exception as _mfx:
-                log.warning(
-                    "EXT-SECRETS-V1 manifest_json sync failed for %s "
-                    "(non-fatal): %s",
-                    app_id, _mfx,
-                )
+        # Icon and manifest blob push to auth-gw — see deploy_sync_artifacts.py
+        # for the federal contract context (B-icon-db, EXT-SECRETS-V1).
+        from deploy_sync_artifacts import sync_icon_and_manifest_to_gw
+        _flags = await sync_icon_and_manifest_to_gw(app_id, app_dir, _gw_post)
+        icon_synced = _flags["icon_synced"]
+        manifest_synced = _flags["manifest_synced"]
 
     if manifest_app_id_mismatch is not None:
         checks.append({
@@ -313,16 +266,4 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     )
 
 
-@chat.function("submit_for_review", action_type="write",
-               description="Submit app for admin review")
-async def submit_for_review(ctx, params: SubmitParams) -> ActionResult:
-    uid = _user_id(ctx)
-    try:
-        result = await _gw_post(f"/v1/developer/apps/{params.app_id}/submit", {"user_id": uid})
-        if result.get("status") == "failed":
-            checks = result.get("checks", [])
-            failed = [c["check"] for c in checks if not c.get("ok") and not c.get("passed")]
-            return ActionResult.error(f"Submission failed — fix: {', '.join(failed)}")
-        return ActionResult.success(data=result, summary=f"App '{params.app_id}' submitted for review.", refresh_panels=["sidebar", "dashboard"])
-    except Exception as e:
-        return ActionResult.error(f"Failed to submit: {e}")
+# submit_for_review handler moved to handlers_submit.py (file split — workspace rule 6).

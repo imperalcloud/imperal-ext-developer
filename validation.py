@@ -15,9 +15,9 @@ import re
 
 MAX_LINES = 300
 
-# NOTE: label strings MUST NOT contain literal eval(/exec(/os.system(/__import__(
-# substrings — the regexes below match their own labels when this file is
-# scanned. Use space-separated phrasing instead of paren syntax.
+# Each pattern matches a dangerous Python construct. The labels below stay free
+# of paren syntax so the scanner does NOT match its own warning text when this
+# file is included in the scan target.
 _DANGER_PATTERNS = [
     (r"\beval\s*\(", "eval invocation"),
     (r"\bexec\s*\(", "exec invocation"),

@@ -5,27 +5,15 @@ import os
 _dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _dir)
 
-# Purge stale cached modules so hot-reload works correctly
-_MODULES = (
-    "app",
-    "handlers",
-    "handlers_deploy",
-    "handlers_payout",
-    "skeleton",
-    "queries",
-    "panels",
-    "panels_dashboard",
-    "panels_overview",
-    "panels_pricing",
-    "panels_analytics",
-    "panels_earnings",
-    "panels_deploy",
-    "panels_transactions",
-    "validation",
-    "validation_runtime",
-    "validation_report",
-)
-for _m in [k for k in sys.modules if k in _MODULES]:
+# Purge every stale cached module on each load. The hardcoded enumeration this
+# replaces was missing handlers_secrets, which caused the Dev Portal's double-
+# load validation pass to leave the secrets handlers bound to a stale chat
+# extension — manifest drift on save_app_secret / delete_app_secret. Wildcard
+# match keeps the list self-maintaining as new modules are added.
+for _m in [k for k in list(sys.modules)
+           if k == "app"
+           or k.startswith(("handlers_", "panels_", "validation"))
+           or k in ("handlers", "panels", "skeleton", "queries")]:
     del sys.modules[_m]
 
 from app import ext, chat  # noqa: F401
@@ -33,6 +21,7 @@ import handlers            # noqa: F401
 import handlers_deploy     # noqa: F401
 import handlers_payout     # noqa: F401
 import handlers_secrets    # noqa: F401  EXT-SECRETS-V1 Secrets tab handlers
+import handlers_submit     # noqa: F401  submit_for_review (split from handlers_deploy)
 import skeleton            # noqa: F401
 import panels              # noqa: F401
 import panels_dashboard    # noqa: F401
