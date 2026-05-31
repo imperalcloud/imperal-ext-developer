@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 from imperal_sdk.chat import ActionResult
 from app import chat, _gw_get, _gw_post, _user_id
+from models_sdl import EarningsSummary, AppEarnings
 
 
 # ---------------------------------------------------------------------------
@@ -43,7 +44,8 @@ async def request_payout(ctx, params: PayoutRequestParams) -> ActionResult:
     )
 
 
-@chat.function("get_earnings", action_type="read", description="View total earnings across all your apps")
+@chat.function("get_earnings", action_type="read", description="View total earnings across all your apps",
+               data_model=EarningsSummary)
 async def get_earnings(ctx, params: EmptyParams) -> ActionResult:
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/earnings?user_id={uid}")
@@ -55,7 +57,8 @@ async def get_earnings(ctx, params: EmptyParams) -> ActionResult:
     )
 
 
-@chat.function("get_earnings_by_app", action_type="read", description="View earnings for a specific app")
+@chat.function("get_earnings_by_app", action_type="read", description="View earnings for a specific app",
+               data_model=AppEarnings)
 async def get_earnings_by_app(ctx, params: AppIdParams) -> ActionResult:
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/earnings/{params.app_id}?user_id={uid}")

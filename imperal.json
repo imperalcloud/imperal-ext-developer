@@ -1,6 +1,6 @@
 {
   "manifest_schema_version": 3,
-  "sdk_version": "5.0.1",
+  "sdk_version": "5.2.0",
   "app_id": "developer",
   "version": "1.4.2",
   "name": "Developer Portal",
