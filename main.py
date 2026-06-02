@@ -12,7 +12,7 @@ sys.path.insert(0, _dir)
 # match keeps the list self-maintaining as new modules are added.
 for _m in [k for k in list(sys.modules)
            if k == "app"
-           or k.startswith(("handlers_", "panels_", "validation"))
+           or k.startswith(("handlers_", "panels_", "validation", "models"))
            or k in ("handlers", "panels", "skeleton", "queries")]:
     del sys.modules[_m]
 

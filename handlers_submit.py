@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
 
 from app import chat, _gw_post, _user_id
+from models_sdl import SubmitReceipt
 
 
 class SubmitParams(BaseModel):
@@ -16,7 +17,8 @@ class SubmitParams(BaseModel):
 
 
 @chat.function("submit_for_review", action_type="write",
-               description="Submit app for admin review")
+               description="Submit app for admin review",
+               data_model=SubmitReceipt)
 async def submit_for_review(ctx, params: SubmitParams) -> ActionResult:
     uid = _user_id(ctx)
     try:

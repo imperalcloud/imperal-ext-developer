@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
 
 from app import chat, _gw_get, _gw_post, _user_id, EXTENSIONS_DIR
+from models_sdl import DeployReceipt
 from validation import validate_extension_full
 from deploy_git import _git_pull_or_clone
 from deploy_sync import (
@@ -39,7 +40,8 @@ class DeployParams(BaseModel):
 
 
 @chat.function("deploy_app", action_type="write",
-               description="Clone or pull extension from Git, validate, and report results")
+               description="Clone or pull extension from Git, validate, and report results",
+               data_model=DeployReceipt)
 async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     uid = _user_id(ctx)
     app_id = params.app_id

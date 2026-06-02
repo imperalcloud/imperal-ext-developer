@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from imperal_sdk import ActionResult
 
 from app import chat, _user_id
+from models_sdl import SecretSaveReceipt, SecretDeleteReceipt
 
 
 GW = os.getenv("IMPERAL_GATEWAY_URL", "http://104.224.88.155:8085")
@@ -50,6 +51,7 @@ class DeleteSecretParams(BaseModel):
         "PUTs to auth-gw /v1/secrets/{app_id}/{name}; plaintext is encrypted "
         "by Vault transit before storage."
     ),
+    data_model=SecretSaveReceipt,
 )
 async def save_app_secret(ctx, params: SaveSecretParams) -> ActionResult:
     uid = _user_id(ctx)
@@ -84,6 +86,7 @@ async def save_app_secret(ctx, params: SaveSecretParams) -> ActionResult:
     "delete_app_secret",
     action_type="destructive",
     description="Delete the value of a declared secret for one of your extensions.",
+    data_model=SecretDeleteReceipt,
 )
 async def delete_app_secret(ctx, params: DeleteSecretParams) -> ActionResult:
     uid = _user_id(ctx)

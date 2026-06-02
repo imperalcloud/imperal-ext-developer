@@ -1,71 +1,63 @@
-"""Developer Portal — SDL typed return models (additive, non-breaking).
+"""Developer Portal — SDL typed return models (100% SDL).
 
-These entities declare the shape of ``ActionResult.data`` for the read tools
-so the platform can read them as typed SDL entities (Federal Typed Return
-Contract V23 — ``data_model`` is required for ``action_type="read"``).
+Canonical re-export hub. Every read/write/destructive @chat.function in this
+extension declares its ``ActionResult.data`` shape as a real ``sdl.Entity`` (or
+``sdl.EntityList[T]`` for list returns), so the platform reads typed SDL
+entities directly from the manifest ``return_schema`` (Federal Typed Return
+Contract V23 — ``data_model`` required for ``action_type="read"``; extended
+here to every data tool per the SDL doctrine: ТОЛЬКО SDL, zero legacy
+``{key:[dict]}`` wrappers).
 
-The ``data_model`` kwarg is schema-declaration only: the SDK records it on
-``FunctionDef._return_model`` for manifest ``return_schema`` emission and
-catalog ingestion. It does NOT validate or coerce the runtime
-``ActionResult.data`` dict, so adding these models is non-breaking to the
-existing handlers — every existing field name is preserved verbatim.
+The concrete records live in domain modules (each under the 300-line god-file
+ceiling, rule 6) and are re-exported here so existing
+``from models_sdl import X`` imports keep working unchanged:
 
-Token amounts are platform tokens, not a fiat currency, so they carry custom
-``developer.*`` roles via ``sdl.field`` rather than the reserved ``money.*``
-facet fields (whose names would not match the handler-visible field names).
+  - models_earnings.py — earnings reads + payout list/receipt
+  - models_app.py      — developer registration, app lifecycle, deploy
+  - models_secrets.py  — app-secret save/delete receipts
+
+Federal I-EXT-RECORD-FIELD-NAMING-SYMMETRIC: field names mirror the ACTUAL
+runtime dict keys the handler returns (handlers return ``data=result`` where
+``result`` is the raw auth-gateway JSON, verified against
+api-contracts/imperal/auth-gateway.json). The ``data_model`` kwarg is
+schema-declaration only (recorded on ``FunctionDef._return_model`` for manifest
+``return_schema`` emission); it does NOT validate/coerce the runtime data dict,
+so these models are non-breaking — unknown keys pass through untouched.
 """
 from __future__ import annotations
 
-from imperal_sdk import sdl
-from pydantic import model_validator
+from models_earnings import (
+    EarningsSummary,
+    AppEarnings,
+    PayoutRecord,
+    PayoutHistory,
+    PayoutRequestReceipt,
+)
+from models_app import (
+    DeveloperRegistration,
+    AppRecord,
+    SuspendReceipt,
+    DeleteAppReceipt,
+    SubmitReceipt,
+    DeployReceipt,
+)
+from models_secrets import (
+    SecretSaveReceipt,
+    SecretDeleteReceipt,
+)
 
-
-class EarningsSummary(sdl.Entity):
-    """Aggregate earnings across all of a developer's apps.
-
-    Shape mirrors ``GET /v1/developer/earnings`` as read by the
-    ``get_earnings`` handler (``total_earned`` + ``available`` token totals).
-    """
-
-    # --- existing handler-visible fields kept verbatim ---
-    total_earned: int | None = sdl.field(
-        role="developer.total_earned",
-        description="Total tokens earned across all apps (lifetime).",
-    )
-    available: int | None = sdl.field(
-        role="developer.available_earnings",
-        description="Tokens available for payout right now.",
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def _sdl_canon(cls, data):
-        if isinstance(data, dict):
-            data.setdefault("id", "earnings")
-            data.setdefault("title", "Earnings")
-        return data
-
-
-class AppEarnings(sdl.Entity):
-    """Earnings scoped to a single app.
-
-    Shape mirrors ``GET /v1/developer/earnings/{app_id}`` as read by the
-    ``get_earnings_by_app`` handler (``total_earned`` token total for one app).
-    The app id is a path parameter, so it is injected into the canonical
-    ``id``/``title`` only when the API echoes it back as ``app_id``.
-    """
-
-    # --- existing handler-visible fields kept verbatim ---
-    app_id: str | None = None
-    total_earned: int | None = sdl.field(
-        role="developer.total_earned",
-        description="Total tokens earned by this app (lifetime).",
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def _sdl_canon(cls, data):
-        if isinstance(data, dict):
-            data.setdefault("id", data.get("app_id") or "app")
-            data.setdefault("title", data.get("app_id") or "App earnings")
-        return data
+__all__ = [
+    "EarningsSummary",
+    "AppEarnings",
+    "PayoutRecord",
+    "PayoutHistory",
+    "PayoutRequestReceipt",
+    "DeveloperRegistration",
+    "AppRecord",
+    "SuspendReceipt",
+    "DeleteAppReceipt",
+    "SubmitReceipt",
+    "DeployReceipt",
+    "SecretSaveReceipt",
+    "SecretDeleteReceipt",
+]

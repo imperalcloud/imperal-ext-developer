@@ -3,6 +3,12 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
 from app import chat, _gw_get, _gw_post, _gw_put, _gw_delete, _user_id
+from models_sdl import (
+    DeveloperRegistration,
+    AppRecord,
+    SuspendReceipt,
+    DeleteAppReceipt,
+)
 import logging
 
 log = logging.getLogger("developer")
@@ -63,7 +69,8 @@ class SavePricingParams(BaseModel):
 # Handlers
 # ---------------------------------------------------------------------------
 @chat.function("register_developer", action_type="write",
-               description="Register as a developer (Explorer tier is free)")
+               description="Register as a developer (Explorer tier is free)",
+               data_model=DeveloperRegistration)
 async def register_developer(ctx, params: RegisterParams) -> ActionResult:
     uid = _user_id(ctx)
     try:
@@ -79,7 +86,8 @@ async def register_developer(ctx, params: RegisterParams) -> ActionResult:
 
 
 @chat.function("create_app", action_type="write",
-               description="Create a new extension app (requires Git URL)")
+               description="Create a new extension app (requires Git URL)",
+               data_model=AppRecord)
 async def create_app(ctx, params: CreateAppParams) -> ActionResult:
     uid = _user_id(ctx)
     try:
@@ -111,7 +119,8 @@ async def create_app(ctx, params: CreateAppParams) -> ActionResult:
 
 
 @chat.function("suspend_app", action_type="write",
-               description="Pause/suspend your app (allows editing pricing)")
+               description="Pause/suspend your app (allows editing pricing)",
+               data_model=SuspendReceipt)
 async def suspend_app(ctx, params: SuspendParams) -> ActionResult:
     uid = _user_id(ctx)
     try:
@@ -124,8 +133,9 @@ async def suspend_app(ctx, params: SuspendParams) -> ActionResult:
         return ActionResult.error(f"Failed to pause app: {e}")
 
 
-@chat.function("delete_app", action_type="write",
-               description="Permanently delete an app. Must be suspended first. Requires typing the exact app_id to confirm. THIS CANNOT BE UNDONE.")
+@chat.function("delete_app", action_type="destructive",
+               description="Permanently delete an app. Must be suspended first. Requires typing the exact app_id to confirm. THIS CANNOT BE UNDONE.",
+               data_model=DeleteAppReceipt)
 async def delete_app(ctx, params: DeleteAppParams) -> ActionResult:
     uid = _user_id(ctx)
     try:
@@ -166,7 +176,8 @@ async def delete_app(ctx, params: DeleteAppParams) -> ActionResult:
 
 
 @chat.function("update_app_info", action_type="write",
-               description="Update app info (name, description, git URL) — works on active apps")
+               description="Update app info (name, description, git URL) — works on active apps",
+               data_model=AppRecord)
 async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
     uid = _user_id(ctx)
     data = {}
@@ -193,7 +204,8 @@ async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
 
 
 @chat.function("update_pricing", action_type="write",
-               description="Update app pricing model (requires paused app)")
+               description="Update app pricing model (requires paused app)",
+               data_model=AppRecord)
 async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
     uid = _user_id(ctx)
     try:
@@ -209,7 +221,8 @@ async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
 
 
 @chat.function("save_pricing", action_type="write",
-               description="Save pricing model and per-tool prices from the pricing form")
+               description="Save pricing model and per-tool prices from the pricing form",
+               data_model=AppRecord)
 async def save_pricing(ctx, params: SavePricingParams) -> ActionResult:
     uid = _user_id(ctx)
 
