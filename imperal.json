@@ -1,8 +1,8 @@
 {
   "manifest_schema_version": 3,
-  "sdk_version": "5.2.1",
+  "sdk_version": "5.4.2",
   "app_id": "developer",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "name": "Developer Portal",
   "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
@@ -39,14 +39,12 @@
             "type": "string"
           },
           "nickname": {
+            "default": "",
             "description": "Unique username/handle (3-30 chars, lowercase, a-z 0-9 _ -)",
             "title": "Nickname",
             "type": "string"
           }
         },
-        "required": [
-          "nickname"
-        ],
         "title": "RegisterParams",
         "type": "object"
       },
@@ -1758,7 +1756,7 @@
     },
     {
       "name": "request_payout",
-      "description": "Request a payout of your available earnings",
+      "description": "Request a payout of your available earnings (minimum 10,000 tokens)",
       "action_type": "write",
       "chain_callable": true,
       "effects": [],

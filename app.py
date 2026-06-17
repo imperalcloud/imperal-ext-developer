@@ -11,7 +11,10 @@ log = logging.getLogger("developer")
 # Config
 # ---------------------------------------------------------------------------
 AUTH_GW = os.environ.get("IMPERAL_GATEWAY_URL", "http://104.224.88.155:8085")
-AUTH_SERVICE_TOKEN = os.environ.get("AUTH_SERVICE_TOKEN", "")
+# Canonical service-token env is IMPERAL_SERVICE_TOKEN (workspace ROT1 convention,
+# matches handlers_secrets.py); fall back to the legacy AUTH_SERVICE_TOKEN name so
+# a one-sided rotation can't silently 403 half the extension's gateway calls.
+AUTH_SERVICE_TOKEN = os.environ.get("IMPERAL_SERVICE_TOKEN") or os.environ.get("AUTH_SERVICE_TOKEN", "")
 REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://66.78.41.10:8098")
 REGISTRY_API_KEY = os.environ.get("REGISTRY_API_KEY", "")
 EXTENSIONS_DIR = "/opt/extensions"
@@ -23,7 +26,7 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # ---------------------------------------------------------------------------
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
-ext = Extension("developer", version="1.5.0",
+ext = Extension("developer", version="1.5.1",
     display_name='Developer Portal',
     description=(
         'Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.'

@@ -10,13 +10,24 @@ async def refresh_status(ctx, **kwargs) -> dict:
     uid = _user_id(ctx)
     try:
         profile = await _gw_get(f"/v1/developer/profile?user_id={uid}")
+        tier = profile.get("tier") or "none"
+        total = profile.get("total_earnings", 0)
+        # profile does NOT carry available_earnings/is_developer — derive them.
+        # available = pending_payout from the earnings endpoint; is_developer from tier.
+        available = 0
+        try:
+            earn = await _gw_get(f"/v1/developer/earnings?user_id={uid}")
+            total = earn.get("total_earnings", total)
+            available = earn.get("pending_payout", 0)
+        except Exception:
+            pass
         return {
             "response": {
-                "tier": profile.get("tier", "none"),
+                "tier": tier,
                 "apps_count": profile.get("apps_count", 0),
-                "total_earnings": profile.get("total_earnings", 0),
-                "available_earnings": profile.get("available_earnings", 0),
-                "is_developer": profile.get("is_developer", False),
+                "total_earnings": total,
+                "available_earnings": available,
+                "is_developer": bool(tier and tier != "none"),
             }
         }
     except Exception:

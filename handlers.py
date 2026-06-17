@@ -19,7 +19,10 @@ log = logging.getLogger("developer")
 # ---------------------------------------------------------------------------
 class RegisterParams(BaseModel):
     tier: str = Field(default="explorer", description="explorer, indie, studio, or partner")
-    nickname: str = Field(description="Unique username/handle (3-30 chars, lowercase, a-z 0-9 _ -)")
+    # Optional at the action layer so an empty submit reaches the handler's
+    # friendly guard instead of a raw kernel param-validation error. The gateway
+    # remains the source of truth — it rejects a missing/invalid handle.
+    nickname: str = Field(default="", description="Unique username/handle (3-30 chars, lowercase, a-z 0-9 _ -)")
 
 
 class CreateAppParams(BaseModel):
@@ -73,13 +76,27 @@ class SavePricingParams(BaseModel):
                data_model=DeveloperRegistration)
 async def register_developer(ctx, params: RegisterParams) -> ActionResult:
     uid = _user_id(ctx)
+    # Friendly guard: nickname is required by the gateway (DeveloperRegisterRequest
+    # rejects a missing/empty handle with 422/400). Surface a clear ask instead of
+    # a raw validation dump when the form is submitted without one.
+    nickname = (params.nickname or "").strip()
+    if not nickname:
+        return ActionResult.error(
+            "Please choose a developer handle (3-30 chars: lowercase a-z, 0-9, _ or -)."
+        )
     try:
         result = await _gw_post("/v1/developer/register", {
-            "user_id": uid, "tier": params.tier,
+            "user_id": uid, "tier": params.tier, "nickname": nickname,
         })
+        # Gateway returns {tier, nickname, registered_at} with no SDL id/title,
+        # but DeveloperRegistration marks them required — project from nickname.
+        if isinstance(result, dict):
+            result.setdefault("id", nickname)
+            result.setdefault("title", f"@{nickname}")
         return ActionResult.success(
             data=result,
-            summary=f"Registered as {params.tier} developer!",
+            summary=f"Registered as {params.tier} developer (@{nickname})!",
+        refresh_panels=["sidebar", "dashboard"],
         )
     except Exception as e:
         return ActionResult.error(f"Registration failed: {e}")

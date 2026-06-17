@@ -1,7 +1,10 @@
 """Developer Portal — left sidebar panel."""
+import logging
 from imperal_sdk import ui
 from app import ext, _gw_get, _user_id, set_selected_app
 import queries
+
+log = logging.getLogger("developer")
 
 _STATUS_COLORS = {"draft": "gray", "pending_review": "yellow", "active": "green", "suspended": "red"}
 _TIER_COLORS = {"explorer": "gray", "indie": "blue", "studio": "purple", "partner": "yellow"}
@@ -25,13 +28,26 @@ async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kw
     except Exception:
         tier = ""
 
-    # Not a developer yet
+    # Not a developer yet — registration form. The gateway requires a unique
+    # developer handle (nickname); a bare ui.Call could not collect it, which
+    # is why the old "Register (Free)" button always 422'd. Collect it here and
+    # forward it through the register_developer handler.
     if not tier:
         children.append(ui.Header("Developer Portal", level=2))
-        children.append(ui.Alert(type="info", message="Register as a developer to create extensions."))
-        children.append(ui.Button(
-            label="Register (Free)", icon="UserPlus", variant="primary",
-            on_click=ui.Call("register_developer", tier="explorer"),
+        children.append(ui.Text(
+            "Register as a developer to publish your own extensions. "
+            "Explorer tier is free."))
+        children.append(ui.Form(
+            action="register_developer",
+            submit_label="Register (Free)",
+            defaults={"tier": "explorer"},
+            children=[
+                ui.Text(
+                    "Choose a public developer handle — 3-30 chars: "
+                    "lowercase a-z, 0-9, _ or - (e.g. your company slug).",
+                    variant="caption"),
+                ui.Input(placeholder="e.g. bluebeeweb", param_name="nickname"),
+            ],
         ))
         return ui.Stack(children=children, gap=2)
 
@@ -80,8 +96,10 @@ async def developer_sidebar(ctx, selected_app: str = "", section: str = "", **kw
             {"key": "Paid out", "value": f"{earnings['paid']:,}"},
             {"key": "Available", "value": f"{earnings['available']:,}"},
         ], columns=1)]))
-    except Exception:
-        pass
+    except Exception as e:
+        # Don't crash the sidebar, but don't swallow silently either — a broken
+        # earnings query (e.g. a bad column) must be visible in the logs.
+        log.warning("sidebar earnings summary failed for %s: %s", uid[:7], e)
 
     # Auto-trigger center overlay (App Details dashboard) on first sidebar mount.
     # federal v4.1.8 declarative center_overlay → chat shifts to 380px right rail.

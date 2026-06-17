@@ -203,6 +203,7 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                     on_click=ui.Call(
                         "delete_app_secret",
                         app_id=app_id, name=name,
+                        confirm="Delete this secret value? This cannot be undone.",
                     ),
                 ))
         else:
@@ -229,6 +230,7 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                     on_click=ui.Call(
                         "delete_app_secret",
                         app_id=app_id, name=name,
+                        confirm="Delete this secret value? This cannot be undone.",
                     ),
                 ))
 

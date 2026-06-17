@@ -174,18 +174,20 @@ async def get_latest_deploy(app_id: str) -> dict | None:
 # Earnings
 # ---------------------------------------------------------------------------
 async def get_earnings_total(developer_id: str) -> dict:
-    sql = """
-        SELECT
-            COALESCE(SUM(developer_share), 0) AS total,
-            COALESCE(SUM(CASE WHEN paid = 1 THEN developer_share ELSE 0 END), 0) AS paid,
-            COALESCE(SUM(CASE WHEN paid = 0 THEN developer_share ELSE 0 END), 0) AS available
-        FROM developer_earnings
-        WHERE developer_id = :dev_id
-    """
+    # developer_earnings has NO `paid` column; paid-out is tracked in
+    # developer_payouts. Mirror the gateway (service.get_earnings): total =
+    # SUM(developer_share); paid = SUM(amount_tokens) of approved/paid payouts;
+    # available = total - paid.
+    total_sql = (
+        "SELECT COALESCE(SUM(developer_share), 0) AS total "
+        "FROM developer_earnings WHERE developer_id = :dev_id"
+    )
+    paid_sql = (
+        "SELECT COALESCE(SUM(amount_tokens), 0) AS paid "
+        "FROM developer_payouts WHERE developer_id = :dev_id "
+        "AND status IN ('approved', 'paid')"
+    )
     async with _AsyncSession() as session:
-        row = (await session.execute(text(sql), {"dev_id": developer_id})).fetchone()
-    return {
-        "total": int(row.total) if row else 0,
-        "paid": int(row.paid) if row else 0,
-        "available": int(row.available) if row else 0,
-    }
+        total = int((await session.execute(text(total_sql), {"dev_id": developer_id})).scalar() or 0)
+        paid = int((await session.execute(text(paid_sql), {"dev_id": developer_id})).scalar() or 0)
+    return {"total": total, "paid": paid, "available": max(0, total - paid)}

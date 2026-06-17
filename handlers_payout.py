@@ -31,21 +31,26 @@ class PayoutRequestParams(BaseModel):
 # ---------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------
-@chat.function("request_payout", action_type="write", description="Request a payout of your available earnings",
+@chat.function("request_payout", action_type="write",
+               description="Request a payout of your available earnings (minimum 10,000 tokens)",
                data_model=PayoutRequestReceipt)
 async def request_payout(ctx, params: PayoutRequestParams) -> ActionResult:
     uid = _user_id(ctx)
-    payload: dict = {
-        "user_id": uid,
-        "amount": params.amount,
-        "payout_method": params.payout_method,
-    }
-    if params.notes:
-        payload["notes"] = params.notes
-    result = await _gw_post("/v1/developer/payouts/request", payload)
+    # The gateway binds PayoutRequestCreate{amount_tokens: int ge=10000} — it does
+    # NOT accept `amount`/`payout_method`/`notes`. Sending `amount` 422'd every
+    # payout (same field-drift class as the register nickname bug). Forward
+    # `amount_tokens`; guard the floor client-side for a friendly message.
+    if params.amount < 10000:
+        return ActionResult.error("Minimum payout is 10,000 tokens. Enter a higher amount.")
+    try:
+        result = await _gw_post("/v1/developer/payouts/request", {
+            "user_id": uid, "amount_tokens": params.amount,
+        })
+    except Exception as e:
+        return ActionResult.error(f"Payout request failed: {e}")
     return ActionResult.success(
         data=result,
-        summary=f"Payout of {params.amount:,} tokens requested via {params.payout_method}.",
+        summary=f"Payout of {params.amount:,} tokens requested.",
     refresh_panels=["sidebar", "dashboard"],
     )
 
@@ -55,8 +60,11 @@ async def request_payout(ctx, params: PayoutRequestParams) -> ActionResult:
 async def get_earnings(ctx, params: EmptyParams) -> ActionResult:
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/earnings?user_id={uid}")
-    total = result.get("total_earned", 0)
-    available = result.get("available", 0)
+    # Gateway EarningsResponse keys are total_earnings / pending_payout / paid_out
+    # (NOT total_earned / available) — reading the wrong keys made chat always
+    # report "0 tokens" despite real balances.
+    total = result.get("total_earnings", 0)
+    available = result.get("pending_payout", 0)
     return ActionResult.success(
         data=result,
         summary=f"Total earned: {total:,} tokens. Available for payout: {available:,} tokens.",
@@ -68,7 +76,8 @@ async def get_earnings(ctx, params: EmptyParams) -> ActionResult:
 async def get_earnings_by_app(ctx, params: AppIdParams) -> ActionResult:
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/earnings/{params.app_id}?user_id={uid}")
-    total = result.get("total_earned", 0)
+    # EarningsByAppResponse exposes total_earnings (not total_earned).
+    total = result.get("total_earnings", 0)
     return ActionResult.success(
         data=result,
         summary=f"App '{params.app_id}' earned {total:,} tokens total.",
