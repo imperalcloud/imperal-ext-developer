@@ -16,7 +16,11 @@ def _field(label_text: str, placeholder: str, param_name: str, value: str = ""):
 
 
 async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
-    app = await _gw_get(f"/v1/developer/apps/{app_id}?user_id={uid}")
+    try:
+        app = await _gw_get(f"/v1/developer/apps/{app_id}?user_id={uid}")
+    except Exception as exc:
+        return ui.Alert(title="Couldn't load this app",
+                        message=f"{type(exc).__name__}: {exc}", type="error")
     status = app.get("status", "draft")
 
     # Edit form
@@ -68,7 +72,7 @@ async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
         {"key": "Created", "value": app.get("created_at", "—")},
         {"key": "Info Changed", "value": (app.get("updated_at") or "—")[:19]},
         {"key": "Pricing", "value": app.get("pricing_model", "free")},
-        {"key": "Revenue Split", "value": f"{app.get('revenue_split_dev', 80)}% dev"},
+        {"key": "Revenue Split", "value": f"{app.get('revenue_split_dev', 70)}% dev"},
     ], columns=2))
 
     # Current Version — from disk + last deploy

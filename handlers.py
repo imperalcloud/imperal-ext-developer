@@ -56,7 +56,9 @@ class UpdatePricingParams(BaseModel):
     app_id: str = Field(..., description="App to update pricing")
     pricing_model: str = Field(..., description="free, per_action, or subscription")
     pricing_config: dict = Field(default_factory=dict, description="Price config")
-    revenue_split_dev: int = Field(default=80, description="Developer share %")
+    # None = keep the developer's current (tier-derived) split. Only an explicit
+    # value changes it, so a pricing-model edit can't silently downgrade the share.
+    revenue_split_dev: Optional[int] = Field(default=None, description="Developer share % (unset = keep current)")
 
 
 class SavePricingParams(BaseModel):
@@ -225,13 +227,18 @@ async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
                data_model=AppRecord)
 async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
     uid = _user_id(ctx)
+    payload = {
+        "user_id": uid,
+        "pricing_model": params.pricing_model,
+        "pricing_config": params.pricing_config,
+    }
+    # Only send the split when explicitly provided — otherwise a routine
+    # pricing-model change would reset a Studio/Partner split (85/95%) down to a
+    # default and quietly cut the developer's share.
+    if params.revenue_split_dev is not None:
+        payload["revenue_split_dev"] = params.revenue_split_dev
     try:
-        result = await _gw_put(f"/v1/developer/apps/{params.app_id}", {
-            "user_id": uid,
-            "pricing_model": params.pricing_model,
-            "pricing_config": params.pricing_config,
-            "revenue_split_dev": params.revenue_split_dev,
-        })
+        result = await _gw_put(f"/v1/developer/apps/{params.app_id}", payload)
         return ActionResult.success(data=result, summary=f"Pricing updated for '{params.app_id}'.")
     except Exception as e:
         return ActionResult.error(f"Failed to update pricing: {e}")

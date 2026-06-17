@@ -1,6 +1,7 @@
 """Developer Portal extension — core app, HTTP helpers, hooks."""
 import logging
 import os
+import urllib.parse
 import httpx
 from imperal_sdk import Extension
 from imperal_sdk.chat import ChatExtension, ActionResult
@@ -26,7 +27,7 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # ---------------------------------------------------------------------------
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
-ext = Extension("developer", version="1.5.1",
+ext = Extension("developer", version="1.5.2",
     display_name='Developer Portal',
     description=(
         'Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.'
@@ -58,14 +59,27 @@ def _get_http():
     return _http
 
 
+def _acting_headers(path: str = "", data: dict = None) -> dict:
+    """Derive X-Acting-User from the user_id already carried in the body/query so
+    the gateway resolves the acting user from the canonical header instead of its
+    deprecated body/query fallback (AA-FU-7, one WARNING per call). Centralized
+    here — no per-call-site churn; user_id stays in place as harmless compat."""
+    uid = ""
+    if isinstance(data, dict):
+        uid = data.get("user_id") or ""
+    if not uid and "?" in path:
+        uid = urllib.parse.parse_qs(urllib.parse.urlparse(path).query).get("user_id", [""])[0]
+    return {"X-Acting-User": uid} if uid else {}
+
+
 async def _gw_get(path: str) -> dict:
-    r = await _get_http().get(path)
+    r = await _get_http().get(path, headers=_acting_headers(path=path))
     r.raise_for_status()
     return r.json()
 
 
 async def _gw_post(path: str, data: dict) -> dict:
-    r = await _get_http().post(path, json=data)
+    r = await _get_http().post(path, json=data, headers=_acting_headers(path, data))
     if r.status_code >= 400:
         detail = r.text
         try:
@@ -77,7 +91,7 @@ async def _gw_post(path: str, data: dict) -> dict:
 
 
 async def _gw_put(path: str, data: dict) -> dict:
-    r = await _get_http().put(path, json=data)
+    r = await _get_http().put(path, json=data, headers=_acting_headers(path, data))
     if r.status_code >= 400:
         detail = r.text
         try:
@@ -89,7 +103,7 @@ async def _gw_put(path: str, data: dict) -> dict:
 
 
 async def _gw_delete(path: str, data: dict = None) -> dict:
-    r = await _get_http().request("DELETE", path, json=data or {})
+    r = await _get_http().request("DELETE", path, json=data or {}, headers=_acting_headers(path, data))
     if r.status_code >= 400:
         detail = r.text
         try:

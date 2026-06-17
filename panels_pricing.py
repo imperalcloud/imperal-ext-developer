@@ -18,10 +18,16 @@ _MODEL_DESCRIPTIONS = {
 
 
 async def build_pricing(uid: str, app_id: str, view: str = "", **kwargs):
-    app = await _gw_get(f"/v1/developer/apps/{app_id}?user_id={uid}")
+    try:
+        app = await _gw_get(f"/v1/developer/apps/{app_id}?user_id={uid}")
+    except Exception as exc:
+        return ui.Alert(title="Couldn't load pricing",
+                        message=f"{type(exc).__name__}: {exc}", type="error")
     status = app.get("status", "draft")
     model = app.get("pricing_model", "free")
-    split = app.get("revenue_split_dev", 80)
+    # Real apps always carry a tier-derived split; 70 (explorer floor, matches the
+    # gateway's own admin fallback) only guards a defensive miss.
+    split = app.get("revenue_split_dev", 70)
     config = app.get("pricing_config") or {}
     tool_prices = config.get("tool_prices", {})
 

@@ -2,7 +2,7 @@
   "manifest_schema_version": 3,
   "sdk_version": "5.4.2",
   "app_id": "developer",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "name": "Developer Portal",
   "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
@@ -1043,10 +1043,17 @@
             "type": "object"
           },
           "revenue_split_dev": {
-            "default": 80,
-            "description": "Developer share %",
-            "title": "Revenue Split Dev",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Developer share % (unset = keep current)",
+            "title": "Revenue Split Dev"
           }
         },
         "required": [
