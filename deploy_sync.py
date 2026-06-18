@@ -168,9 +168,6 @@ async def _sync_panel_config_to_unified_config(app_id: str, app_dir: str) -> boo
             if slot in ALLOWED_PANEL_SLOTS and slot not in panels_by_slot:
                 panels_by_slot[slot] = (name, meta)
 
-        if not panels_by_slot:
-            return False
-
         ui_panels: dict[str, dict] = {}
         default_icon = {
             "left":         "Puzzle",
@@ -195,14 +192,24 @@ async def _sync_panel_config_to_unified_config(app_id: str, app_dir: str) -> boo
                 entry["center_overlay"] = True
             ui_panels[slot] = entry
 
-        payload = {"config": {"ui": {"panels": ui_panels}}}
+        # I-PANEL-SLOT-PRUNE (2026-06-18): PUT the COMPLETE current slot map and
+        # flag ui.panels for wholesale REPLACE so a renamed/removed @ext.panel
+        # does NOT leave an orphan slot in unified_config pointing at a panel the
+        # code no longer declares (root cause of the perpetual left-column
+        # spinner — "panel doesn't render new changes"). The GW deep-merge never
+        # deletes keys absent from the body; replace_paths=["ui.panels"] prunes.
+        # We always PUT (even an empty map) so "all panels removed" also clears.
+        payload = {
+            "config": {"ui": {"panels": ui_panels}},
+            "replace_paths": ["ui.panels"],
+        }
         path = f"/v1/internal/config/app/{app_id}?tenant_id=default&app_id={app_id}"
         await _gw_put(path, payload)
         log.info(
-            "Panel config synced: %s — slots=%s",
+            "Panel config synced (replace): %s — slots=%s",
             app_id, sorted(ui_panels.keys()),
         )
-        return True
+        return bool(panels_by_slot)
     except Exception as e:
         log.warning(f"Panel config sync failed for {app_id}: {e}")
         return False
