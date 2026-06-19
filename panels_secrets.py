@@ -13,7 +13,7 @@ If the app declares no secrets, shows an empty state with the canonical
 Uses only SDK ui.* primitives:
 - ui.Card(title=, subtitle=, content=UINode)  — single content node, not list
 - ui.Text(content=, variant="body"/"caption"/"heading"/"code")
-- ui.Input(param_name=, placeholder=, value=)  — no type=, no name=
+- ui.Input(param_name=, placeholder=, value=, type=)  — type∈{text,password,email,number,url} (v4.2.6+); prefer ui.Password for credentials
 - ui.Form(children=, action=, submit_label=, defaults=)  — defaults carries
   hidden values (app_id, name) since there's no ui.Hidden primitive
 - ui.Link(label=, on_click=ui.Open(url=...))  — Open action opens new tab
