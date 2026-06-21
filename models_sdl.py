@@ -40,6 +40,7 @@ from models_app import (
     DeleteAppReceipt,
     SubmitReceipt,
     DeployReceipt,
+    SmokeReceipt,
 )
 from models_secrets import (
     SecretSaveReceipt,
@@ -58,6 +59,7 @@ __all__ = [
     "DeleteAppReceipt",
     "SubmitReceipt",
     "DeployReceipt",
+    "SmokeReceipt",
     "SecretSaveReceipt",
     "SecretDeleteReceipt",
 ]

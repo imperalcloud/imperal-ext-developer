@@ -23,6 +23,7 @@ import handlers_payout     # noqa: F401
 import handlers_secrets    # noqa: F401  EXT-SECRETS-V1 Secrets tab handlers
 import handlers_submit     # noqa: F401  submit_for_review (split from handlers_deploy)
 import deploy_ir           # noqa: F401  deploy_ir @chat.function (P1.2)
+import smoke_ir            # noqa: F401  smoke_ir @chat.function (P2)
 import skeleton            # noqa: F401
 import panels              # noqa: F401
 import panels_dashboard    # noqa: F401

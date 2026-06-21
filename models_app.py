@@ -166,3 +166,26 @@ class DeployReceipt(sdl.Entity):
             data.setdefault("kind", "deploy")
             data.setdefault("status", data.get("status"))
         return data
+
+
+# ---------------------------------------------------------------------------
+# Smoke-run (read — explicit handler-built dict)
+# ---------------------------------------------------------------------------
+class SmokeReceipt(sdl.Entity):
+    """Receipt for smoke_ir (kind='smoke').
+
+    Mirrors the EXACT dict smoke_ir builds: ok, result, trace.
+    """
+
+    ok: bool = False
+    result: Optional[Any] = None
+    trace: Optional[Any] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sdl_canon(cls, data):
+        if isinstance(data, dict):
+            data["id"] = data.get("id") or "smoke"
+            data.setdefault("title", "Smoke run")
+            data.setdefault("kind", "smoke")
+        return data
