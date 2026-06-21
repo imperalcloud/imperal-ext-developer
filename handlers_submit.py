@@ -17,7 +17,9 @@ class SubmitParams(BaseModel):
 
 
 @chat.function("submit_for_review", action_type="write",
-               description="Submit app for admin review",
+               description="Submit (publish) an app for admin Marketplace review — "
+                           "moves a draft / dev-mode app into the review queue "
+                           "(e.g. 'publish my app X', 'submit X for review')",
                data_model=SubmitReceipt)
 async def submit_for_review(ctx, params: SubmitParams) -> ActionResult:
     uid = _user_id(ctx)

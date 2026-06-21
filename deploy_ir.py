@@ -23,6 +23,12 @@ log = logging.getLogger("developer")
 class DeployIRParams(BaseModel):
     app_id: str = Field(..., description="App to deploy the IR to")
     ir_dict: dict = Field(..., description="The app.ir.json content (declarative IR envelope)")
+    dev_mode: bool = Field(
+        False,
+        description="Keep the app private in dev mode (deployed + usable by the "
+        "owner, but NOT submitted to Marketplace review). Default False = the "
+        "app auto-submits to Marketplace review (pending_review).",
+    )
 
 
 @chat.function("deploy_ir", action_type="write",
@@ -47,8 +53,11 @@ async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
         return ActionResult.error(f"App not found: {e}")
 
     # Validate + write + hot-index + fleet-wide catalog signal (kernel, in-process).
+    # P4a-1: thread the owner + dev_mode so register_ir_app ensures the
+    # developer_apps row and (unless dev_mode) auto-submits it to Marketplace
+    # review. Best-effort inside the kernel; never fails the deploy.
     from imperal_kernel.services.registration import register_ir_app
-    result = await register_ir_app(app_id, params.ir_dict)
+    result = await register_ir_app(app_id, params.ir_dict, owner_user_id=uid, dev_mode=params.dev_mode)
     if not result.get("ok"):
         issues = result.get("issues", [])
         msgs = "; ".join(
@@ -77,6 +86,7 @@ async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
         log.warning("deploy_ir record_deploy failed for %s: %s", app_id, e)
 
     summary = f"Deployed IR app {app_id} v{version} — {tools_synced} tools registered in catalog."
+    summary += " Kept in dev mode (private draft)." if params.dev_mode else " Submitted to Marketplace review."
     if manifest_synced:
         summary += " Manifest synced to DB (tools classifiable)."
     return ActionResult.success(

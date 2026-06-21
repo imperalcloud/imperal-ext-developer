@@ -83,7 +83,7 @@ async def test_invalid_ir_returns_error_without_calling_sync(monkeypatch):
     sync_called = []
     record_called = []
 
-    async def fake_register_ir_app(app_id, ir_dict):
+    async def fake_register_ir_app(app_id, ir_dict, owner_user_id="", dev_mode=False):
         return {"ok": False, "issues": [{"message": "IR1: bad schema"}]}
 
     async def fake_gw_get(path):
@@ -122,7 +122,7 @@ async def test_happy_path_returns_success_with_tools_synced(monkeypatch):
     """When register_ir_app returns ok=True, deploy_ir returns ActionResult.success
     with tools_synced matching the value returned by _sync_tools_to_registry.
     """
-    async def fake_register_ir_app(app_id, ir_dict):
+    async def fake_register_ir_app(app_id, ir_dict, owner_user_id="", dev_mode=False):
         return {"ok": True}
 
     async def fake_gw_get(path):
@@ -167,7 +167,7 @@ async def test_happy_path_returns_success_with_tools_synced(monkeypatch):
 async def test_manifest_sync_failure_is_non_fatal(monkeypatch):
     """If the manifest sync fails, deploy still succeeds with manifest_synced=False
     (best-effort, like the registry sync) — the IR app is already registered."""
-    async def fake_register_ir_app(app_id, ir_dict):
+    async def fake_register_ir_app(app_id, ir_dict, owner_user_id="", dev_mode=False):
         return {"ok": True}
 
     async def fake_gw_get(path):
@@ -222,3 +222,51 @@ async def test_invalid_app_id_rejected_before_any_io(monkeypatch):
         assert result.status == "error", f"app_id={bad!r} should error"
         assert "Invalid app_id" in (result.error or ""), f"app_id={bad!r}: {result.error!r}"
     assert gw_called == [], "owner-check must NOT run for an invalid app_id"
+
+
+# ---------------------------------------------------------------------------
+# (e) P4a-1 — owner + dev_mode threaded into register_ir_app
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_owner_and_dev_mode_threaded_to_register(monkeypatch):
+    """deploy_ir threads the caller (owner) + dev_mode into register_ir_app so
+    the kernel ensures the developer_apps row and (unless dev_mode) auto-submits
+    it to Marketplace review. Default dev_mode=False ⇒ submitted; True ⇒ draft."""
+    seen = {}
+
+    async def fake_register_ir_app(app_id, ir_dict, owner_user_id="", dev_mode=False):
+        seen["owner"] = owner_user_id
+        seen["dev"] = dev_mode
+        return {"ok": True}
+
+    async def fake_gw_get(path):
+        return {"app_id": "test-app"}
+
+    async def fake_sync(app_id, app_dir, owner_id):
+        return 1
+
+    async def fake_sync_manifest(app_id, ir_dict):
+        return True
+
+    async def fake_record(uid, app_id, version, status, error_msg):
+        pass
+
+    _inject_kernel_fake(fake_register_ir_app)
+    monkeypatch.setattr(_deploy_ir_mod, "_gw_get", fake_gw_get)
+    monkeypatch.setattr(_deploy_ir_mod, "_sync_tools_to_registry", fake_sync)
+    monkeypatch.setattr(_deploy_ir_mod, "_sync_ir_manifest", fake_sync_manifest)
+    monkeypatch.setattr(_deploy_ir_mod, "_record_deploy", fake_record)
+
+    ctx = _FakeCtx()
+    # default: owner = caller, dev_mode False → "Submitted to Marketplace review"
+    r = await deploy_ir(ctx, DeployIRParams(app_id="test-app", ir_dict={"app": {"version": "1"}}))
+    assert r.status == "success", f"{r.error!r}"
+    assert seen["owner"] == "user-test-123"
+    assert seen["dev"] is False
+    assert "Submitted to Marketplace review" in (r.summary or "")
+    # dev_mode True → kept draft
+    r2 = await deploy_ir(ctx, DeployIRParams(app_id="test-app", ir_dict={"app": {"version": "1"}}, dev_mode=True))
+    assert r2.status == "success"
+    assert seen["dev"] is True
+    assert "dev mode" in (r2.summary or "").lower()
