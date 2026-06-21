@@ -15,7 +15,7 @@ from imperal_sdk.chat import ActionResult
 
 from app import chat, _gw_get, _user_id, EXTENSIONS_DIR
 from models_app import DeployReceipt
-from deploy_sync import _record_deploy, _sync_tools_to_registry
+from deploy_sync import _record_deploy, _sync_ir_manifest, _sync_tools_to_registry
 
 log = logging.getLogger("developer")
 
@@ -64,6 +64,12 @@ async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
         log.warning("deploy_ir registry sync failed for %s: %s", app_id, e)
         tools_synced = 0
 
+    manifest_synced = False
+    try:
+        manifest_synced = await _sync_ir_manifest(app_id, params.ir_dict)
+    except Exception as e:
+        log.warning("deploy_ir manifest sync failed for %s: %s", app_id, e)
+
     version = (params.ir_dict.get("app", {}) or {}).get("version", "") or "ir"
     try:
         await _record_deploy(uid, app_id, version, "success", "")
@@ -71,6 +77,8 @@ async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
         log.warning("deploy_ir record_deploy failed for %s: %s", app_id, e)
 
     summary = f"Deployed IR app {app_id} v{version} — {tools_synced} tools registered in catalog."
+    if manifest_synced:
+        summary += " Manifest synced to DB (tools classifiable)."
     return ActionResult.success(
         data={
             "app_id": app_id,
@@ -80,7 +88,7 @@ async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
             "tools_synced": tools_synced,
             "panels_synced": False,
             "icon_synced": False,
-            "manifest_synced": False,
+            "manifest_synced": manifest_synced,
             "migrations_applied": None,
         },
         summary=summary,

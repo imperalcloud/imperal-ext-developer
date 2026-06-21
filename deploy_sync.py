@@ -141,6 +141,46 @@ async def _sync_tools_to_registry(app_id: str, app_dir: str, owner_id: str = "")
         return 0
 
 
+async def _sync_ir_manifest(app_id: str, ir_dict: dict) -> bool:
+    """Sync IR-derived manifest_json to the developer record via the gateway.
+
+    Populates developer_apps.manifest_json / tools_json so that the owner API
+    (GET /v1/developer/apps/{app_id}) returns tool classifications for IR apps,
+    enabling the MCP read-only gate (finding F1).  The gateway auto-derives
+    tools_json from manifest_json["tools"], so we only POST the manifest dict.
+
+    Non-fatal: a failure here must NOT fail the deploy.  Returns True if the
+    gateway confirmed the update.
+    """
+    try:
+        app = (ir_dict.get("app") or {})
+        manifest = {
+            "name": app.get("title") or app_id,
+            "version": app.get("version") or "ir",
+            "description": app.get("description", ""),
+            "tools": [
+                {
+                    "name": fn.get("name", ""),
+                    "description": fn.get("description", ""),
+                    "action_type": fn.get("action_type", "read"),
+                    "params_schema": fn.get("params_schema", {}),
+                }
+                for fn in (app.get("functions") or [])
+                if fn.get("name")
+            ],
+        }
+        res = await _gw_post(
+            f"/v1/developer/apps/{app_id}/_sync_manifest",
+            {"manifest_json": manifest},
+        )
+        updated = bool(res.get("updated"))
+        log.info("IR manifest synced for %s — tools=%d updated=%s", app_id, len(manifest["tools"]), updated)
+        return updated
+    except Exception as exc:
+        log.warning("IR manifest sync failed for %s (non-fatal): %s", app_id, exc)
+        return False
+
+
 async def _sync_panel_config_to_unified_config(app_id: str, app_dir: str) -> bool:
     """GAP-9: After deploy, write ``config.ui.panels`` into Auth GW
     unified_config so the extension page ``/ext/{app_id}`` renders left/
