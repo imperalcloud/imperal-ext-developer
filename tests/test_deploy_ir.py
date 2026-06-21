@@ -157,3 +157,30 @@ async def test_happy_path_returns_success_with_tools_synced(monkeypatch):
     assert result.data.get("manifest_synced") is False
     assert result.data.get("migrations_applied") is None
     assert result.refresh_panels == ["sidebar", "dashboard"]
+
+
+# ---------------------------------------------------------------------------
+# (d) Security — strict app_id allowlist BEFORE any I/O
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_invalid_app_id_rejected_before_any_io(monkeypatch):
+    """A malformed app_id (path traversal / injection chars / over-long / empty)
+    is rejected up-front, before the ownership check or any kernel call —
+    prevents traversal in os.path.join(EXTENSIONS_DIR, app_id) and path/query
+    injection into the ownership-check URL."""
+    gw_called = []
+
+    async def fake_gw_get(path):
+        gw_called.append(path)
+        return {"app_id": "x"}
+
+    monkeypatch.setattr(_deploy_ir_mod, "_gw_get", fake_gw_get)
+
+    ctx = _FakeCtx()
+    for bad in ("../etc/passwd", "a/b", "app id", "x?user_id=victim", "x" * 65, ""):
+        params = DeployIRParams(app_id=bad, ir_dict={"app": {}})
+        result = await deploy_ir(ctx, params)
+        assert result.status == "error", f"app_id={bad!r} should error"
+        assert "Invalid app_id" in (result.error or ""), f"app_id={bad!r}: {result.error!r}"
+    assert gw_called == [], "owner-check must NOT run for an invalid app_id"

@@ -8,6 +8,7 @@ no second validator. PII gate is P2's scope (DeployReceipt carries no PII).
 """
 import logging
 import os
+import re
 
 from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
@@ -30,6 +31,14 @@ class DeployIRParams(BaseModel):
 async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
     uid = _user_id(ctx)
     app_id = params.app_id
+
+    # Strict app_id allowlist BEFORE any use — prevents path traversal in
+    # os.path.join(EXTENSIONS_DIR, app_id) (and register_ir_app's own write)
+    # and path/query injection into the ownership-check URL below.
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", app_id or ""):
+        return ActionResult.error(
+            "Invalid app_id (allowed: letters, digits, '_' and '-'; max 64 chars)."
+        )
 
     # Ownership (mirror deploy_app): the app must exist and belong to the caller.
     try:
