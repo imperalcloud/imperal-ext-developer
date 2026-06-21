@@ -134,9 +134,13 @@ async def test_happy_path_returns_success_with_tools_synced(monkeypatch):
     async def fake_record(uid, app_id, version, status, error_msg):
         pass  # no-op; existence is enough
 
+    async def fake_sync_manifest(app_id, ir_dict):
+        return True  # manifest synced to the developer record (F1)
+
     _inject_kernel_fake(fake_register_ir_app)
     monkeypatch.setattr(_deploy_ir_mod, "_gw_get", fake_gw_get)
     monkeypatch.setattr(_deploy_ir_mod, "_sync_tools_to_registry", fake_sync)
+    monkeypatch.setattr(_deploy_ir_mod, "_sync_ir_manifest", fake_sync_manifest)
     monkeypatch.setattr(_deploy_ir_mod, "_record_deploy", fake_record)
 
     ctx = _FakeCtx()
@@ -154,9 +158,43 @@ async def test_happy_path_returns_success_with_tools_synced(monkeypatch):
     assert result.data.get("validation") == "ok"
     assert result.data.get("panels_synced") is False
     assert result.data.get("icon_synced") is False
-    assert result.data.get("manifest_synced") is False
+    assert result.data.get("manifest_synced") is True
     assert result.data.get("migrations_applied") is None
     assert result.refresh_panels == ["sidebar", "dashboard"]
+
+
+@pytest.mark.asyncio
+async def test_manifest_sync_failure_is_non_fatal(monkeypatch):
+    """If the manifest sync fails, deploy still succeeds with manifest_synced=False
+    (best-effort, like the registry sync) — the IR app is already registered."""
+    async def fake_register_ir_app(app_id, ir_dict):
+        return {"ok": True}
+
+    async def fake_gw_get(path):
+        return {"app_id": "test-app"}
+
+    async def fake_sync(app_id, app_dir, owner_id):
+        return 2
+
+    async def boom_sync_manifest(app_id, ir_dict):
+        raise RuntimeError("gateway 503")
+
+    async def fake_record(uid, app_id, version, status, error_msg):
+        pass
+
+    _inject_kernel_fake(fake_register_ir_app)
+    monkeypatch.setattr(_deploy_ir_mod, "_gw_get", fake_gw_get)
+    monkeypatch.setattr(_deploy_ir_mod, "_sync_tools_to_registry", fake_sync)
+    monkeypatch.setattr(_deploy_ir_mod, "_sync_ir_manifest", boom_sync_manifest)
+    monkeypatch.setattr(_deploy_ir_mod, "_record_deploy", fake_record)
+
+    ctx = _FakeCtx()
+    params = _make_params(app_id="test-app", version="1.2.3")
+    result = await deploy_ir(ctx, params)
+
+    assert result.status == "success"  # deploy not blocked by a manifest-sync failure
+    assert result.data.get("manifest_synced") is False
+    assert result.data.get("tools_synced") == 2
 
 
 # ---------------------------------------------------------------------------
