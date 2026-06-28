@@ -58,8 +58,14 @@ async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
 
     children = []
 
-    # Header + status badge
-    children.append(ui.Stack(direction="h", gap=1, children=[
+    # Header: real app icon (single source — same /apps/{id}/icon endpoint as
+    # marketplace + sidebar) · title · status badge
+    children.append(ui.Stack(direction="h", gap=2, children=[
+        ui.Image(
+            src=f"/api/extensions/{app_id}/icon.svg",
+            alt=app.get("display_name", app_id),
+            width="40px", height="40px",
+        ),
         ui.Header(app.get("display_name", app_id), level=2),
         ui.Badge(status.replace("_", " ").title(), color=_STATUS_COLORS.get(status, "gray")),
     ]))
