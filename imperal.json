@@ -1,6 +1,6 @@
 {
   "manifest_schema_version": 3,
-  "sdk_version": "5.7.3",
+  "sdk_version": "5.4.2",
   "app_id": "developer",
   "version": "1.5.2",
   "name": "Developer Portal",
@@ -1561,148 +1561,6 @@
       "owner_chat_tool": "tool_developer_chat"
     },
     {
-      "name": "save_skeleton_ttl",
-      "description": "Save per-section skeleton refresh intervals from the Skeleton form",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": [],
-      "id_projection": "",
-      "params_schema": {
-        "additionalProperties": true,
-        "properties": {
-          "app_id": {
-            "description": "App whose skeleton timers to update",
-            "title": "App Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "app_id"
-        ],
-        "title": "SaveSkeletonTtlParams",
-        "type": "object"
-      },
-      "return_schema": {
-        "description": "Receipt for save_skeleton_ttl (kind='extension').\n\nHandler-built dict: app_id, updated, sections (the section_name/ttl_override\npairs applied).",
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              }
-            ],
-            "title": "Id"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "kind": {
-            "default": "",
-            "title": "Kind",
-            "type": "string"
-          },
-          "subtitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Subtitle"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Description"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Status"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Url"
-          },
-          "app_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "App Id"
-          },
-          "updated": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Updated"
-          },
-          "sections": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Sections"
-          }
-        },
-        "required": [
-          "id",
-          "title"
-        ],
-        "title": "SkeletonConfigReceipt",
-        "type": "object",
-        "x-sdl": "entity"
-      },
-      "event": "",
-      "background": false,
-      "long_running": false,
-      "scopes": [],
-      "owner_chat_tool": "tool_developer_chat"
-    },
-    {
       "name": "deploy_app",
       "description": "Clone or pull extension from Git, validate, and report results",
       "action_type": "write",
@@ -2920,7 +2778,7 @@
     },
     {
       "name": "submit_for_review",
-      "description": "Submit (publish) an app for admin Marketplace review — moves a draft / dev-mode app into the review queue (e.g. 'publish my app X', 'submit X for review')",
+      "description": "Submit app for admin review",
       "action_type": "write",
       "chain_callable": true,
       "effects": [],
@@ -3036,41 +2894,29 @@
       "owner_chat_tool": "tool_developer_chat"
     },
     {
-      "name": "deploy_ir",
-      "description": "Deploy a composed declarative IR app (app.ir.json) — validate, register, and sync to the registry",
+      "name": "save_skeleton_ttl",
+      "description": "Save per-section skeleton refresh intervals from the Skeleton form",
       "action_type": "write",
       "chain_callable": true,
       "effects": [],
       "id_projection": "",
       "params_schema": {
+        "additionalProperties": true,
         "properties": {
           "app_id": {
-            "description": "App to deploy the IR to",
+            "description": "App whose skeleton timers to update",
             "title": "App Id",
             "type": "string"
-          },
-          "ir_dict": {
-            "additionalProperties": true,
-            "description": "The app.ir.json content (declarative IR envelope)",
-            "title": "Ir Dict",
-            "type": "object"
-          },
-          "dev_mode": {
-            "default": false,
-            "description": "Keep the app private in dev mode (deployed + usable by the owner, but NOT submitted to Marketplace review). Default False = the app auto-submits to Marketplace review (pending_review).",
-            "title": "Dev Mode",
-            "type": "boolean"
           }
         },
         "required": [
-          "app_id",
-          "ir_dict"
+          "app_id"
         ],
-        "title": "DeployIRParams",
+        "title": "SaveSkeletonTtlParams",
         "type": "object"
       },
       "return_schema": {
-        "description": "Receipt for deploy_app (kind='deploy').\n\nMirrors the EXACT dict deploy_app builds: app_id, commit, status,\nvalidation, tools_synced, panels_synced, icon_synced, manifest_synced,\nmigrations_applied.",
+        "description": "Receipt for save_skeleton_ttl (kind='extension').\n\nHandler-built dict: app_id, updated, sections (the section_name/ttl_override\npairs applied).",
         "properties": {
           "id": {
             "anyOf": [
@@ -3152,43 +2998,7 @@
             "default": null,
             "title": "App Id"
           },
-          "commit": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Commit"
-          },
-          "validation": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Validation"
-          },
-          "tools_synced": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Tools Synced"
-          },
-          "panels_synced": {
+          "updated": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -3198,33 +3008,9 @@
               }
             ],
             "default": null,
-            "title": "Panels Synced"
+            "title": "Updated"
           },
-          "icon_synced": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Icon Synced"
-          },
-          "manifest_synced": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Manifest Synced"
-          },
-          "migrations_applied": {
+          "sections": {
             "anyOf": [
               {},
               {
@@ -3232,159 +3018,14 @@
               }
             ],
             "default": null,
-            "title": "Migrations Applied"
+            "title": "Sections"
           }
         },
         "required": [
           "id",
           "title"
         ],
-        "title": "DeployReceipt",
-        "type": "object",
-        "x-sdl": "entity"
-      },
-      "event": "",
-      "background": false,
-      "long_running": false,
-      "scopes": [],
-      "owner_chat_tool": "tool_developer_chat"
-    },
-    {
-      "name": "smoke_ir",
-      "description": "Smoke-run one function of a composed IR app in an isolated store and report the result",
-      "action_type": "read",
-      "chain_callable": true,
-      "effects": [],
-      "id_projection": "",
-      "params_schema": {
-        "properties": {
-          "ir_dict": {
-            "additionalProperties": true,
-            "description": "The app.ir.json content to smoke-run",
-            "title": "Ir Dict",
-            "type": "object"
-          },
-          "function": {
-            "description": "Which function to run",
-            "title": "Function",
-            "type": "string"
-          },
-          "args": {
-            "additionalProperties": true,
-            "description": "Arguments for the function",
-            "title": "Args",
-            "type": "object"
-          }
-        },
-        "required": [
-          "ir_dict",
-          "function"
-        ],
-        "title": "SmokeIRParams",
-        "type": "object"
-      },
-      "return_schema": {
-        "description": "Receipt for smoke_ir (kind='smoke').\n\nMirrors the EXACT dict smoke_ir builds: ok, result, trace.",
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              }
-            ],
-            "title": "Id"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "kind": {
-            "default": "",
-            "title": "Kind",
-            "type": "string"
-          },
-          "subtitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Subtitle"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Description"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Status"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Url"
-          },
-          "ok": {
-            "default": false,
-            "title": "Ok",
-            "type": "boolean"
-          },
-          "result": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Result"
-          },
-          "trace": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Trace"
-          }
-        },
-        "required": [
-          "id",
-          "title"
-        ],
-        "title": "SmokeReceipt",
+        "title": "SkeletonConfigReceipt",
         "type": "object",
         "x-sdl": "entity"
       },
@@ -3411,19 +3052,5 @@
     "on_install": {
       "signature": "(ctx)"
     }
-  },
-  "panels": [
-    {
-      "panel_id": "sidebar",
-      "slot": "left",
-      "title": "Developer Portal",
-      "tree": {}
-    },
-    {
-      "panel_id": "dashboard",
-      "slot": "center",
-      "title": "App Details",
-      "tree": {}
-    }
-  ]
+  }
 }
