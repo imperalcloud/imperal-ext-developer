@@ -1,5 +1,6 @@
 """Developer Portal — Overview tab builder."""
 from imperal_sdk import ui
+from imperal_sdk.ui.base import UINode
 from app import _gw_get, EXTENSIONS_DIR
 from queries import get_latest_deploy
 from validation import get_disk_version
@@ -59,13 +60,14 @@ async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
     children = []
 
     # Header: real app icon (single source — same /apps/{id}/icon endpoint as
-    # marketplace + sidebar) · title · status badge
+    # marketplace + sidebar) on a plate (the panel `appicon` node renders the
+    # shared <AppIcon>, so monochrome/currentColor icons stay visible on dark) ·
+    # title · status badge
     children.append(ui.Stack(direction="h", gap=2, children=[
-        ui.Image(
-            src=f"/api/extensions/{app_id}/icon.svg",
-            alt=app.get("display_name", app_id),
-            width="40px", height="40px",
-        ),
+        UINode(type="appicon", props={
+            "app_id": app_id,
+            "display_name": app.get("display_name", app_id),
+        }),
         ui.Header(app.get("display_name", app_id), level=2),
         ui.Badge(status.replace("_", " ").title(), color=_STATUS_COLORS.get(status, "gray")),
     ]))
