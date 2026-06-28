@@ -9,6 +9,7 @@ from panels_webhooks import build_webhooks
 from panels_transactions import build_transactions
 from panels_earnings import build_earnings
 from panels_deploy import build_deploy
+from panels_skeleton import build_skeleton
 
 _TABS = [
     ("overview",     "Overview",      "Info"),
@@ -18,6 +19,7 @@ _TABS = [
     ("earnings",     "Earnings",      "Wallet"),
     ("secrets",      "Secrets",       "KeyRound"),
     ("webhooks",     "Webhooks",      "Webhook"),
+    ("skeleton",     "Skeleton",      "Activity"),
     ("deploy",       "Deploy",        "Rocket"),
 ]
 
@@ -29,6 +31,7 @@ _BUILDERS = {
     "webhooks": build_webhooks,
     "transactions": build_transactions,
     "earnings": build_earnings,
+    "skeleton": build_skeleton,
     "deploy": build_deploy,
 }
 
