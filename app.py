@@ -117,6 +117,13 @@ async def _gw_delete(path: str, data: dict = None) -> dict:
 # ---------------------------------------------------------------------------
 # HTTP helpers — Registry
 # ---------------------------------------------------------------------------
+async def _registry_get(path: str) -> dict:
+    async with httpx.AsyncClient(base_url=REGISTRY_URL, timeout=15) as c:
+        r = await c.get(path, headers={"x-api-key": REGISTRY_API_KEY})
+        r.raise_for_status()
+        return r.json()
+
+
 async def _registry_post(path: str, data: dict) -> dict:
     async with httpx.AsyncClient(base_url=REGISTRY_URL, timeout=15) as c:
         r = await c.post(path, json=data, headers={"x-api-key": REGISTRY_API_KEY})

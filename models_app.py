@@ -189,3 +189,27 @@ class SmokeReceipt(sdl.Entity):
             data.setdefault("title", "Smoke run")
             data.setdefault("kind", "smoke")
         return data
+
+
+# ---------------------------------------------------------------------------
+# Skeleton timer (write — handler-built dict)
+# ---------------------------------------------------------------------------
+class SkeletonConfigReceipt(sdl.Entity):
+    """Receipt for save_skeleton_ttl (kind='extension').
+
+    Handler-built dict: app_id, updated, sections (the section_name/ttl_override
+    pairs applied).
+    """
+
+    app_id: Optional[str] = None
+    updated: Optional[bool] = None
+    sections: Optional[Any] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sdl_canon(cls, data):
+        if isinstance(data, dict):
+            data["id"] = data.get("app_id") or data.get("id") or "app"
+            data.setdefault("title", data.get("app_id") or "Skeleton config")
+            data.setdefault("kind", "extension")
+        return data
