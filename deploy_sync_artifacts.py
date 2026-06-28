@@ -10,10 +10,28 @@ Extracted from handlers_deploy.py to keep that module under the workspace's
 """
 from __future__ import annotations
 
+import glob
 import logging
 import os
 
 log = logging.getLogger("developer")
+
+
+def _resolve_icon_path(app_dir: str, manifest: dict) -> str | None:
+    """Resolve the icon file inside app_dir. Order: manifest-declared `icon`
+    filename (basename only — path-traversal guard; must end .svg), then
+    icon.svg, then the sole *.svg in the package root. None if no icon ships
+    (the icon endpoint serves a placeholder)."""
+    candidates = []
+    declared = (manifest or {}).get("icon")
+    if declared and str(declared).lower().endswith(".svg"):
+        candidates.append(os.path.join(app_dir, os.path.basename(str(declared))))
+    candidates.append(os.path.join(app_dir, "icon.svg"))
+    for c in candidates:
+        if os.path.isfile(c):
+            return c
+    svgs = glob.glob(os.path.join(app_dir, "*.svg"))
+    return svgs[0] if len(svgs) == 1 else None
 
 _ICON_MAX_BYTES = 65_536       # federal manifest cap per Extension icon
 _MANIFEST_MAX_BYTES = 1_048_576  # 1 MB ceiling enforced auth-gw side
@@ -36,9 +54,20 @@ async def sync_icon_and_manifest_to_gw(app_id: str, app_dir: str, gw_post) -> di
 
     Both syncs are non-fatal — the deploy itself has already succeeded.
     """
+    # Parse manifest once — used for icon-filename resolution and the blob sync.
+    _manifest_dict: dict = {}
+    _manifest_path = os.path.join(app_dir, "imperal.json")
+    if os.path.isfile(_manifest_path):
+        try:
+            import json as _json
+            with open(_manifest_path, "r", encoding="utf-8") as _mf:
+                _manifest_dict = _json.load(_mf) or {}
+        except Exception:
+            _manifest_dict = {}
+
     icon_synced = False
-    icon_path = os.path.join(app_dir, "icon.svg")
-    if os.path.isfile(icon_path):
+    icon_path = _resolve_icon_path(app_dir, _manifest_dict)
+    if icon_path and os.path.isfile(icon_path):
         try:
             with open(icon_path, "r", encoding="utf-8") as f:
                 icon_bytes = f.read()
