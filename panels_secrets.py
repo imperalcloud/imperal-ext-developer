@@ -102,11 +102,10 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
                 content=ui.Stack(children=[
                     ui.Code(content=(
                         'ext.secret(\n'
-                        '    name="openai_api_key",\n'
-                        '    description="Your OpenAI API key (sk-proj-...).",\n'
-                        '    required=True,\n'
-                        '    write_mode="user",       # user pastes via Panel\n'
-                        '    max_bytes=200,\n'
+                        '    name="google_client_secret",\n'
+                        '    description="Google OAuth client secret (shared by all users).",\n'
+                        '    scope="app",            # developer-owned, all users\n'
+                        '    env_fallback="GMAIL_CLIENT_SECRET",  # migration bridge\n'
                         ')(lambda: None)'
                     ), language="python"),
                     ui.Text(content=(
@@ -152,6 +151,7 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
         desc = spec.get("description", "")
         required = bool(spec.get("required", False))
         write_mode = spec.get("write_mode", "user")
+        scope = spec.get("scope", "user")
         rotation_hint = spec.get("rotation_hint_days")
 
         st = statuses.get(name, {})
@@ -163,6 +163,8 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
 
         # Status line — name + badges
         head_badges = [
+            ui.Badge("app (shared)" if scope == "app" else "user",
+                     color="purple" if scope == "app" else "gray"),
             ui.Badge("Set" if is_set else "Not set",
                      color="green" if is_set else "gray"),
         ]
@@ -211,6 +213,11 @@ async def build_secrets(uid: str, app_id: str, **_kwargs: Any) -> Any:
             # `defaults` dict carries app_id + name as hidden values that
             # ride into save_app_secret action alongside the user-entered
             # value (no ui.Hidden primitive exists in SDK 4.2.x).
+            if scope == "app":
+                body_children.append(ui.Text(
+                    content="Developer-owned — one value shared by all users of this app.",
+                    variant="caption",
+                ))
             body_children.append(ui.Form(
                 action="save_app_secret",
                 submit_label="Save" if not is_set else "Rotate",
