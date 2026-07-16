@@ -7,7 +7,7 @@
   "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
   "actions_explicit": true,
-  "system": false,
+  "system": true,
   "capabilities": [],
   "tools": [
     {

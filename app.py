@@ -28,6 +28,13 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
 ext = Extension("developer", version="1.5.2",
+    system=True,  # Imperal-owned platform app (mirrors admin/marketplace) —
+    # first-party, hidden from Marketplace search, auto-installed for every
+    # user. NOTE (2026-07-16): this was missing here even though
+    # developer_apps.system had been hand-seeded to 1 in the DB; a later
+    # fix made deploy_app self-heal `system` FROM this manifest field, which
+    # then correctly-but-unintentionally overwrote the DB flag to 0 on the
+    # next developer-ext deploy because this declaration was absent. Restored.
     display_name='Developer Portal',
     description=(
         'Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.'
