@@ -87,9 +87,22 @@ async def sync_icon_and_manifest_to_gw(app_id: str, app_dir: str, gw_post) -> di
             with open(manifest_path, "r", encoding="utf-8") as f:
                 manifest_blob = f.read()
             if 0 < len(manifest_blob) <= _MANIFEST_MAX_BYTES:
+                sync_payload: dict = {"manifest_json": manifest_blob}
+                # I-SYSTEM-FLAG-MANIFEST-SYNC (2026-07-16): the manifest's own
+                # top-level `system` bool declares first-party-app INTENT, but
+                # nothing ever mirrored it onto developer_apps.system — the
+                # SEPARATE gateway column that actually drives Marketplace
+                # exclusion + auto-install (_MANIFEST_SYNC_ALLOWED has always
+                # included "system"; this call just never sent it). Missing
+                # this meant a redeployed app with manifest system=true could
+                # still show up in marketplace search (e.g. notifications-control).
+                # Include it here so every deploy self-heals the gateway bit
+                # from the manifest, same as icon_svg/manifest_json already do.
+                if "system" in _manifest_dict:
+                    sync_payload["system"] = bool(_manifest_dict.get("system"))
                 res = await gw_post(
                     f"/v1/developer/apps/{app_id}/_sync_manifest",
-                    {"manifest_json": manifest_blob},
+                    sync_payload,
                 )
                 manifest_synced = bool(res.get("updated"))
         except Exception as exc:
