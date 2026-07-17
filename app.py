@@ -145,6 +145,13 @@ async def _registry_put(path: str, data: dict) -> dict:
         return r.json()
 
 
+async def _registry_patch(path: str, data: dict) -> dict:
+    async with httpx.AsyncClient(base_url=REGISTRY_URL, timeout=15) as c:
+        r = await c.patch(path, json=data, headers={"x-api-key": REGISTRY_API_KEY})
+        r.raise_for_status()
+        return r.json()
+
+
 # ---------------------------------------------------------------------------
 # User ID helper
 # ---------------------------------------------------------------------------

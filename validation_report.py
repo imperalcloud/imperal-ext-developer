@@ -20,8 +20,11 @@ def merge_results(static: dict, runtime: dict) -> dict:
     runtime_checks = runtime.get("checks", [])
 
     # Tag static checks with phase + severity
-    # Only structure + syntax are critical blockers; rest are warnings
-    _CRITICAL_STATIC = {"structure", "syntax"}
+    # Critical blockers: structure + syntax + the on-disk manifest schema
+    # (slice-9, 2026-07-17 — the manifest is the source of truth every
+    # surface derives from; a schema-invalid one must not deploy). Audited:
+    # all 29 currently-deployed manifests pass, so this blocks nobody today.
+    _CRITICAL_STATIC = {"structure", "syntax", "manifest_schema"}
     for c in static_checks:
         c.setdefault("phase", "static")
         if not c.get("passed") and c.get("name") in _CRITICAL_STATIC:

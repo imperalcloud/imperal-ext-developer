@@ -156,11 +156,54 @@ def _check_sdk_usage(app_dir: str) -> dict:
             "detail": "main.py does not import imperal_sdk"}
 
 
+def _check_manifest_schema(app_dir: str) -> dict:
+    """Full SDK schema validation of the ON-DISK imperal.json (slice-9,
+    2026-07-17). Until now the deep M1-M8 rules ran only in the LOCAL CLI
+    (`imperal validate`) — the server gate accepted any parseable JSON with a
+    name+version, so a structurally invalid manifest deployed with a mere
+    warning. The manifest is the platform's source of truth (names, tools,
+    panels, secrets all derive from it), so schema errors now block the
+    deploy. Fail-open ONLY on environment trouble (SDK import failure) —
+    an env hiccup must never brick deploys; real schema errors never pass.
+    Audited 2026-07-17: all 29 deployed manifests pass with zero errors."""
+    label = "imperal.json schema (SDK M-rules)"
+    manifest = os.path.join(app_dir, "imperal.json")
+    if not os.path.isfile(manifest):
+        return {"name": "manifest_schema", "label": label, "passed": False,
+                "detail": "imperal.json not found"}
+    try:
+        with open(manifest, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        return {"name": "manifest_schema", "label": label, "passed": False,
+                "detail": f"Invalid JSON: {exc}"}
+    try:
+        from imperal_sdk.manifest_schema import validate_manifest_dict
+    except Exception as exc:
+        return {"name": "manifest_schema", "label": label, "passed": True,
+                "detail": f"SDK unavailable, schema check skipped: {exc}"}
+    try:
+        issues = validate_manifest_dict(data)
+    except Exception as exc:
+        return {"name": "manifest_schema", "label": label, "passed": False,
+                "detail": f"schema validator raised: {exc}"}
+    errors = [i for i in (issues or [])
+              if str(getattr(i, "level", getattr(i, "severity", ""))).upper() == "ERROR"]
+    if errors:
+        detail = "; ".join(
+            f"{getattr(e, 'rule', '?')}: {str(getattr(e, 'message', e))[:120]}"
+            for e in errors[:5])
+        return {"name": "manifest_schema", "label": label, "passed": False,
+                "detail": detail}
+    return {"name": "manifest_schema", "label": label, "passed": True, "detail": "OK"}
+
+
 def validate_extension(app_dir: str) -> dict:
     """Run all checks. Returns {checks, passed, total, ok}."""
     checks = [
         _check_structure(app_dir),
         _check_manifest(app_dir),
+        _check_manifest_schema(app_dir),
         _check_syntax(app_dir),
         _check_file_size(app_dir),
         _check_security(app_dir),

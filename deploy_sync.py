@@ -1,10 +1,13 @@
 """Developer Portal — registry + unified_config sync helpers
 (split from handlers_deploy.py).
 """
+import json
+import os
 import sys
 import logging
 
-from app import (_gw_post, _gw_put, _registry_post, _registry_put, EXTENSIONS_DIR)
+from app import (_gw_post, _gw_put, _registry_post, _registry_put,
+                 _registry_patch, EXTENSIONS_DIR)
 
 log = logging.getLogger("developer")
 
@@ -23,18 +26,44 @@ async def _record_deploy(uid, app_id, sha, status, error_msg):
         pass
 
 
-async def _ensure_app_in_registry(app_id: str, owner_id: str):
-    """Ensure app exists in Registry. Creates if missing (409 = already exists = OK)."""
+def _manifest_display_name(app_id: str) -> str:
+    """The extension's declared display name from its on-disk manifest — the
+    single source of truth for the app's name (slice-9, 2026-07-17). Empty on
+    any read/parse trouble (caller falls back to app_id)."""
+    try:
+        mf = os.path.join(EXTENSIONS_DIR, app_id, "imperal.json")
+        with open(mf, "r", encoding="utf-8") as f:
+            return str(json.load(f).get("name") or "").strip()
+    except Exception:
+        return ""
+
+
+async def _ensure_app_in_registry(app_id: str, owner_id: str, display_name: str = ""):
+    """Ensure app exists in Registry with its manifest display name.
+
+    Creates with the manifest name (slice-9: was app_id — the slug then leaked
+    to the capability list and forced a kernel-side humanizer). On 409 (already
+    exists), REFRESH display_name from the manifest so the Registry row tracks
+    the manifest SSOT on every redeploy — the row was previously never updated,
+    so a name added after first deploy never propagated."""
+    _name = display_name or app_id
     try:
         await _registry_post("/v1/apps", {
             "app_id": app_id,
-            "display_name": app_id,
+            "display_name": _name,
             "owner_id": owner_id,
         })
-        log.info(f"Registry: created app '{app_id}'")
+        log.info(f"Registry: created app '{app_id}' (display_name='{_name}')")
     except Exception as e:
         if "409" in str(e) or "already exists" in str(e).lower():
-            pass
+            # Existing row — keep its display_name tracking the manifest.
+            if display_name and display_name != app_id:
+                try:
+                    await _registry_patch(f"/v1/apps/{app_id}",
+                                          {"display_name": display_name})
+                    log.info(f"Registry: refreshed display_name for '{app_id}' -> '{display_name}'")
+                except Exception as pe:
+                    log.warning(f"Registry: display_name refresh for '{app_id}' failed: {pe}")
         else:
             log.warning(f"Registry: failed to ensure app '{app_id}': {e}")
 
@@ -128,7 +157,8 @@ async def _sync_tools_to_registry(app_id: str, app_dir: str, owner_id: str = "")
 
         skeleton = _derive_skeleton_sections_from_ext(ext)
 
-        await _ensure_app_in_registry(app_id, owner_id)
+        await _ensure_app_in_registry(app_id, owner_id,
+                                      display_name=_manifest_display_name(app_id))
 
         result = await _registry_put(
             f"/v1/apps/{app_id}/tools",
