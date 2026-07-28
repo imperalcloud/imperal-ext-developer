@@ -17,11 +17,13 @@ class SubmitParams(BaseModel):
 
 
 @chat.function("submit_for_review", action_type="write",
+               event="developer.submit_for_review", effects=["update:app_status"],
                description="Submit (publish) an app for admin Marketplace review — "
                            "moves a draft / dev-mode app into the review queue "
                            "(e.g. 'publish my app X', 'submit X for review')",
                data_model=SubmitReceipt)
 async def submit_for_review(ctx, params: SubmitParams) -> ActionResult:
+    """Submit (publish) an app for admin Marketplace review — moves a draft / dev-mode app into the review queue (e.g. 'publish my app X', 'submit X for review')"""
     uid = _user_id(ctx)
     try:
         result = await _gw_post(f"/v1/developer/apps/{params.app_id}/submit", {"user_id": uid})

@@ -23,6 +23,7 @@ class SmokeIRParams(BaseModel):
                description="Smoke-run one function of a composed IR app in an isolated store and report the result",
                data_model=SmokeReceipt)
 async def smoke_ir(ctx, params: SmokeIRParams) -> ActionResult:
+    """Smoke-run one function of a composed IR app in an isolated store and report the result"""
     _ = _user_id(ctx)  # auth/identity already enforced by the gateway
     from imperal_kernel.compose.tools import smoke_run_impl
     try:

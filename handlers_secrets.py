@@ -46,6 +46,8 @@ class DeleteSecretParams(BaseModel):
 @chat.function(
     "save_app_secret",
     action_type="write",
+    event="developer.save_app_secret",
+    effects=["create:secret"],
     description=(
         "Save the value of a declared secret for one of your extensions. "
         "PUTs to auth-gw /v1/secrets/{app_id}/{name}; plaintext is encrypted "
@@ -54,6 +56,7 @@ class DeleteSecretParams(BaseModel):
     data_model=SecretSaveReceipt,
 )
 async def save_app_secret(ctx, params: SaveSecretParams) -> ActionResult:
+    """Save the value of a declared secret for one of your extensions. PUTs to auth-gw /v1/secrets/{app_id}/{name}; plaintext is encrypted by Vault transit before storage."""
     uid = _user_id(ctx)
     if not (params.app_id and params.name and params.value):
         return ActionResult.error("app_id, name, and value are all required.")
@@ -85,10 +88,13 @@ async def save_app_secret(ctx, params: SaveSecretParams) -> ActionResult:
 @chat.function(
     "delete_app_secret",
     action_type="destructive",
+    event="developer.delete_app_secret",
+    effects=["delete:secret"],
     description="Delete the value of a declared secret for one of your extensions.",
     data_model=SecretDeleteReceipt,
 )
 async def delete_app_secret(ctx, params: DeleteSecretParams) -> ActionResult:
+    """Delete the value of a declared secret for one of your extensions."""
     uid = _user_id(ctx)
     if not (params.app_id and params.name):
         return ActionResult.error("app_id and name are required.")

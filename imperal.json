@@ -41,7 +41,9 @@
       "description": "Register as a developer (Explorer tier is free)",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "create:developer_account"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -187,7 +189,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.register_developer",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -198,7 +200,9 @@
       "description": "Create a new extension app (requires Git URL)",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "create:app"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -479,7 +483,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.create_app",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -490,7 +494,9 @@
       "description": "Pause/suspend your app (allows editing pricing)",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "update:app_status"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -598,7 +604,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.suspend_app",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -609,7 +615,9 @@
       "description": "Permanently delete an app. Must be suspended first. Requires typing the exact app_id to confirm. THIS CANNOT BE UNDONE.",
       "action_type": "destructive",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "delete:app"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -723,7 +731,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.delete_app",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -734,7 +742,9 @@
       "description": "Update app info (name, description, git URL) — works on active apps",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "update:app"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -1024,7 +1034,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.update_app_info",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1035,7 +1045,9 @@
       "description": "Update app pricing model (requires paused app)",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "update:app_pricing"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -1298,7 +1310,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.update_pricing",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1309,7 +1321,9 @@
       "description": "Save pricing model and per-tool prices from the pricing form",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "update:app_pricing"
+      ],
       "id_projection": "",
       "params_schema": {
         "additionalProperties": true,
@@ -1567,7 +1581,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.save_pricing",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1578,7 +1592,9 @@
       "description": "Clone or pull extension from Git, validate, and report results",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "create:deployment"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -1768,7 +1784,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.deploy_app",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1779,7 +1795,9 @@
       "description": "Request a payout of your available earnings (minimum 10,000 tokens)",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "create:payout_request"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -1948,7 +1966,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.request_payout",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -2502,7 +2520,9 @@
       "description": "Save the value of a declared secret for one of your extensions. PUTs to auth-gw /v1/secrets/{app_id}/{name}; plaintext is encrypted by Vault transit before storage.",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "create:secret"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -2646,7 +2666,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.save_app_secret",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -2657,7 +2677,9 @@
       "description": "Delete the value of a declared secret for one of your extensions.",
       "action_type": "destructive",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "delete:secret"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -2783,7 +2805,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.delete_app_secret",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -2794,7 +2816,9 @@
       "description": "Submit (publish) an app for admin Marketplace review — moves a draft / dev-mode app into the review queue (e.g. 'publish my app X', 'submit X for review')",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "update:app_status"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -2900,7 +2924,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.submit_for_review",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -2911,7 +2935,9 @@
       "description": "Save per-section skeleton refresh intervals from the Skeleton form",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "update:extension_settings"
+      ],
       "id_projection": "",
       "params_schema": {
         "additionalProperties": true,
@@ -3042,7 +3068,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.save_skeleton_ttl",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -3053,7 +3079,9 @@
       "description": "Deploy a composed declarative IR app (app.ir.json) — validate, register, and sync to the registry",
       "action_type": "write",
       "chain_callable": true,
-      "effects": [],
+      "effects": [
+        "create:deployment"
+      ],
       "id_projection": "",
       "params_schema": {
         "properties": {
@@ -3256,7 +3284,7 @@
         "type": "object",
         "x-sdl": "entity"
       },
-      "event": "",
+      "event": "developer.deploy_ir",
       "background": false,
       "long_running": false,
       "scopes": [],

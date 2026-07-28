@@ -32,9 +32,11 @@ class PayoutRequestParams(BaseModel):
 # Handlers
 # ---------------------------------------------------------------------------
 @chat.function("request_payout", action_type="write",
+               event="developer.request_payout", effects=["create:payout_request"],
                description="Request a payout of your available earnings (minimum 10,000 tokens)",
                data_model=PayoutRequestReceipt)
 async def request_payout(ctx, params: PayoutRequestParams) -> ActionResult:
+    """Request a payout of your available earnings (minimum 10,000 tokens)"""
     uid = _user_id(ctx)
     # The gateway binds PayoutRequestCreate{amount_tokens: int ge=10000} — it does
     # NOT accept `amount`/`payout_method`/`notes`. Sending `amount` 422'd every
@@ -58,6 +60,7 @@ async def request_payout(ctx, params: PayoutRequestParams) -> ActionResult:
 @chat.function("get_earnings", action_type="read", description="View total earnings across all your apps",
                data_model=EarningsSummary)
 async def get_earnings(ctx, params: EmptyParams) -> ActionResult:
+    """View total earnings across all your apps"""
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/earnings?user_id={uid}")
     # Gateway EarningsResponse keys are total_earnings / pending_payout / paid_out
@@ -74,6 +77,7 @@ async def get_earnings(ctx, params: EmptyParams) -> ActionResult:
 @chat.function("get_earnings_by_app", action_type="read", description="View earnings for a specific app",
                data_model=AppEarnings)
 async def get_earnings_by_app(ctx, params: AppIdParams) -> ActionResult:
+    """View earnings for a specific app"""
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/earnings/{params.app_id}?user_id={uid}")
     # EarningsByAppResponse exposes total_earnings (not total_earned).
@@ -87,6 +91,7 @@ async def get_earnings_by_app(ctx, params: AppIdParams) -> ActionResult:
 @chat.function("get_payout_history", action_type="read", description="View your payout request history",
                data_model=PayoutHistory)
 async def get_payout_history(ctx, params: EmptyParams) -> ActionResult:
+    """View your payout request history"""
     uid = _user_id(ctx)
     result = await _gw_get(f"/v1/developer/payouts?user_id={uid}")
     # Auth-gw returns a bare JSON array of PayoutResponse; older builds wrapped

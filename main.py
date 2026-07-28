@@ -5,16 +5,29 @@ import os
 _dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _dir)
 
-# Purge every stale cached module on each load. The hardcoded enumeration this
-# replaces was missing handlers_secrets, which caused the Dev Portal's double-
-# load validation pass to leave the secrets handlers bound to a stale chat
-# extension — manifest drift on save_app_secret / delete_app_secret. Wildcard
-# match keeps the list self-maintaining as new modules are added.
-for _m in [k for k in list(sys.modules)
-           if k == "app"
-           or k.startswith(("handlers_", "panels_", "validation", "models"))
-           or k in ("handlers", "panels", "skeleton", "queries")]:
-    del sys.modules[_m]
+# Purge every stale cached module belonging to THIS extension on each load.
+# Matching by file location (not name/prefix) is truly self-maintaining: any
+# past or future top-level module — handlers_secrets, deploy_ir, smoke_ir, or
+# whatever comes next — is caught automatically, because the platform's
+# double-load validation pass re-imports main.py in the SAME process. A
+# prefix/name allowlist bit us twice for the same underlying reason:
+#   - handlers_secrets was missing from an earlier hand-maintained list,
+#     leaving the secrets handlers bound to a stale ChatExtension (manifest
+#     drift on save_app_secret / delete_app_secret).
+#   - deploy_ir / smoke_ir have no handlers_/panels_ prefix, so they were
+#     never covered by the wildcard match either — same drift class, this
+#     time reported by the validator as "in imperal.json but not registered
+#     in code" even though both tools are real, working @chat.function's.
+# `app` itself is included explicitly since it defines `ext`/`chat` fresh.
+# `main` itself is explicitly EXCLUDED — it is the currently-executing module;
+# deleting its own sys.modules entry mid-exec is an unnecessary risk this
+# purge doesn't need to take (nothing re-imports `main` from within main.py).
+for _name, _mod in list(sys.modules.items()):
+    if _name == "main":
+        continue
+    _mod_file = getattr(_mod, "__file__", None)
+    if _name == "app" or (_mod_file and os.path.dirname(os.path.abspath(_mod_file)) == _dir):
+        del sys.modules[_name]
 
 from app import ext, chat  # noqa: F401
 import handlers            # noqa: F401

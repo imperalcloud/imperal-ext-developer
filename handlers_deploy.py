@@ -40,9 +40,11 @@ class DeployParams(BaseModel):
 
 
 @chat.function("deploy_app", action_type="write",
+               event="developer.deploy_app", effects=["create:deployment"],
                description="Clone or pull extension from Git, validate, and report results",
                data_model=DeployReceipt)
 async def deploy_app(ctx, params: DeployParams) -> ActionResult:
+    """Clone or pull extension from Git, validate, and report results"""
     uid = _user_id(ctx)
     app_id = params.app_id
 

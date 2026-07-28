@@ -74,9 +74,11 @@ class SavePricingParams(BaseModel):
 # Handlers
 # ---------------------------------------------------------------------------
 @chat.function("register_developer", action_type="write",
+               event="developer.register_developer", effects=["create:developer_account"],
                description="Register as a developer (Explorer tier is free)",
                data_model=DeveloperRegistration)
 async def register_developer(ctx, params: RegisterParams) -> ActionResult:
+    """Register as a developer (Explorer tier is free)"""
     uid = _user_id(ctx)
     # Friendly guard: nickname is required by the gateway (DeveloperRegisterRequest
     # rejects a missing/empty handle with 422/400). Surface a clear ask instead of
@@ -105,9 +107,11 @@ async def register_developer(ctx, params: RegisterParams) -> ActionResult:
 
 
 @chat.function("create_app", action_type="write",
+               event="developer.create_app", effects=["create:app"],
                description="Create a new extension app (requires Git URL)",
                data_model=AppRecord)
 async def create_app(ctx, params: CreateAppParams) -> ActionResult:
+    """Create a new extension app (requires Git URL)"""
     uid = _user_id(ctx)
     try:
         pricing_config = {}
@@ -138,9 +142,11 @@ async def create_app(ctx, params: CreateAppParams) -> ActionResult:
 
 
 @chat.function("suspend_app", action_type="write",
+               event="developer.suspend_app", effects=["update:app_status"],
                description="Pause/suspend your app (allows editing pricing)",
                data_model=SuspendReceipt)
 async def suspend_app(ctx, params: SuspendParams) -> ActionResult:
+    """Pause/suspend your app (allows editing pricing)"""
     uid = _user_id(ctx)
     try:
         result = await _gw_post(f"/v1/developer/apps/{params.app_id}/suspend", {"user_id": uid})
@@ -153,9 +159,11 @@ async def suspend_app(ctx, params: SuspendParams) -> ActionResult:
 
 
 @chat.function("delete_app", action_type="destructive",
+               event="developer.delete_app", effects=["delete:app"],
                description="Permanently delete an app. Must be suspended first. Requires typing the exact app_id to confirm. THIS CANNOT BE UNDONE.",
                data_model=DeleteAppReceipt)
 async def delete_app(ctx, params: DeleteAppParams) -> ActionResult:
+    """Permanently delete an app. Must be suspended first. Requires typing the exact app_id to confirm. THIS CANNOT BE UNDONE."""
     uid = _user_id(ctx)
     try:
         result = await _gw_delete(
@@ -195,9 +203,11 @@ async def delete_app(ctx, params: DeleteAppParams) -> ActionResult:
 
 
 @chat.function("update_app_info", action_type="write",
+               event="developer.update_app_info", effects=["update:app"],
                description="Update app info (name, description, git URL) — works on active apps",
                data_model=AppRecord)
 async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
+    """Update app info (name, description, git URL) — works on active apps"""
     uid = _user_id(ctx)
     data = {}
     if params.display_name is not None:
@@ -223,9 +233,11 @@ async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
 
 
 @chat.function("update_pricing", action_type="write",
+               event="developer.update_pricing", effects=["update:app_pricing"],
                description="Update app pricing model (requires paused app)",
                data_model=AppRecord)
 async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
+    """Update app pricing model (requires paused app)"""
     uid = _user_id(ctx)
     payload = {
         "user_id": uid,
@@ -245,9 +257,11 @@ async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
 
 
 @chat.function("save_pricing", action_type="write",
+               event="developer.save_pricing", effects=["update:app_pricing"],
                description="Save pricing model and per-tool prices from the pricing form",
                data_model=AppRecord)
 async def save_pricing(ctx, params: SavePricingParams) -> ActionResult:
+    """Save pricing model and per-tool prices from the pricing form"""
     uid = _user_id(ctx)
 
     # Extract per-tool prices from extra fields (price_toolname=value)

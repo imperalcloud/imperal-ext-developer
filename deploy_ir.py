@@ -32,9 +32,11 @@ class DeployIRParams(BaseModel):
 
 
 @chat.function("deploy_ir", action_type="write",
+               event="developer.deploy_ir", effects=["create:deployment"],
                description="Deploy a composed declarative IR app (app.ir.json) — validate, register, and sync to the registry",
                data_model=DeployReceipt)
 async def deploy_ir(ctx, params: DeployIRParams) -> ActionResult:
+    """Deploy a composed declarative IR app (app.ir.json) — validate, register, and sync to the registry"""
     uid = _user_id(ctx)
     app_id = params.app_id
 

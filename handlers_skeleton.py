@@ -15,9 +15,11 @@ class SaveSkeletonTtlParams(BaseModel):
 
 
 @chat.function("save_skeleton_ttl", action_type="write",
+               event="developer.save_skeleton_ttl", effects=["update:extension_settings"],
                description="Save per-section skeleton refresh intervals from the Skeleton form",
                data_model=SkeletonConfigReceipt)
 async def save_skeleton_ttl(ctx, params: SaveSkeletonTtlParams) -> ActionResult:
+    """Save per-section skeleton refresh intervals from the Skeleton form"""
     uid = _user_id(ctx)
     sections = build_override_sections(params.model_extra or {})
     if not sections:
