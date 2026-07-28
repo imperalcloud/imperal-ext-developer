@@ -2,9 +2,11 @@
 from app import ext, _gw_get, _user_id
 
 
-# SDL-exempt: @ext.tool skeleton (context-refresh), not a @chat.function data
-# tool — no data_model required (V23 applies only to chat read/write tools).
-@ext.tool("skeleton_refresh_developer_status", scopes=["extensions:read"])
+# SDL-exempt: @ext.skeleton refresh (context-refresh), not a @chat.function
+# data tool — no data_model required (V23 applies only to chat read/write
+# tools). Uses the modern @ext.skeleton() decorator (not @ext.tool) so the
+# kernel auto-wires section metadata (MANIFEST-SKELETON-1).
+@ext.skeleton("developer_status")
 async def refresh_status(ctx, **kwargs) -> dict:
     """Provide developer tier, app count, and earnings to the AI context."""
     uid = _user_id(ctx)

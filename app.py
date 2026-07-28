@@ -28,6 +28,22 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
 ext = Extension("developer", version="1.5.2",
+    capabilities=[
+        # Developer registration + app lifecycle (create/deploy/suspend/delete/update)
+        "developer:profile:read", "developer:profile:write",
+        "developer:apps:read", "developer:apps:write", "developer:apps:delete",
+        # Pricing (save_pricing/update_pricing)
+        "developer:pricing:read", "developer:pricing:write",
+        # Payouts (request/history) + earnings (read-only analytics)
+        "developer:payouts:read", "developer:payouts:write",
+        "developer:earnings:read",
+        # Per-app declared secrets (save_app_secret/delete_app_secret)
+        "developer:secrets:write", "developer:secrets:delete",
+        # Marketplace review submission (submit_for_review)
+        "marketplace:submit",
+        # Skeleton TTL config (save_skeleton_ttl)
+        "developer:skeleton:write",
+    ],
     system=True,  # Imperal-owned platform app (mirrors admin/marketplace) —
     # first-party, hidden from Marketplace search, auto-installed for every
     # user. NOTE (2026-07-16): this was missing here even though
