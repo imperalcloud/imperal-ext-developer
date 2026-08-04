@@ -1,6 +1,7 @@
 """Developer Portal — git helpers (split from handlers_deploy.py)."""
 import asyncio
 import os
+import re
 import shutil
 import logging
 
@@ -15,6 +16,36 @@ log = logging.getLogger("developer")
 # admin re-deploy backs up the dir and clones from git_url.
 FIRSTPARTY_APP_IDS = {"admin", "automations", "billing", "developer", "hello-world"}
 FIRSTPARTY_BACKUP_DIR = "/opt/backups/extensions"
+
+
+def _normalise_git_url(url: str) -> str:
+    """Canonical ``host/owner/repo`` for OWNERSHIP COMPARISON only.
+
+    The canonical publish flow is: developer pushes to GitHub, then deploys
+    from the Dev Portal. The SAME GitHub repo is legitimately addressed as
+    ``git@github.com:owner/repo.git`` (what a local clone's origin says) and
+    ``https://github.com/owner/repo.git`` (what the Portal form submits).
+    Comparing those as RAW STRINGS made the squat guard refuse a developer's
+    OWN repo -- so this collapses scheme, embedded credentials, scp-vs-URL
+    shape, an optional port, a ``.git`` suffix, a trailing slash and case.
+
+    The squat defence is UNCHANGED in substance: host, owner and repo must
+    all still match, so a different repo, a different owner or a lookalike
+    host still compares as different. Never raises -- an unparseable URL just
+    normalises to itself (lowercased), which keeps the old refuse behaviour.
+    """
+    if not url:
+        return ""
+    s = url.strip()
+    s = re.sub(r"^(https?|ssh|git)://", "", s, flags=re.I)
+    if "@" in s.split("/")[0]:
+        s = re.sub(r"^[^/@]+@", "", s, count=1)
+    s = re.sub(r"^([^/:]+):(?!\d)", r"\1/", s, count=1)
+    s = re.sub(r"^([^/:]+):\d+/", r"\1/", s, count=1)
+    s = s.rstrip("/")
+    if s.lower().endswith(".git"):
+        s = s[:-4]
+    return s.lower()
 
 
 async def _git_remote_url(app_dir: str) -> str | None:
@@ -57,9 +88,12 @@ async def _git_pull_or_clone(
     if os.path.isdir(git_dir):
         # Squatting defence: if the existing repo's origin does not match
         # the caller's declared git_url, refuse. Remote-URL equality is
-        # our ownership proof for the .git-exists branch.
+        # our ownership proof for the .git-exists branch -- compared on the
+        # NORMALISED form (host/owner/repo), so the same GitHub repo reached
+        # over ssh and over https is correctly seen as the same repo, while
+        # a different repo/owner/host still refuses.
         current_remote = await _git_remote_url(app_dir)
-        if current_remote and current_remote.rstrip("/") != git_url.rstrip("/"):
+        if current_remote and _normalise_git_url(current_remote) != _normalise_git_url(git_url):
             return ("squatting_refused",
                     f"/opt/extensions path already owned by a different git remote "
                     f"({current_remote}); refusing to overwrite with {git_url}")
