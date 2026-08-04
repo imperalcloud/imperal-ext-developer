@@ -210,6 +210,39 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         icon_synced = _flags["icon_synced"]
         manifest_synced = _flags["manifest_synced"]
 
+        # Tell the WHOLE fleet that this app changed, so the new code goes live
+        # without restarting workers.
+        #
+        # The syncs above ran inside ONE worker. That worker re-loaded the app
+        # (the loader re-reads an extension whose files changed), but its
+        # siblings kept serving the code they already had in memory — so which
+        # version a user got depended on which worker answered them, until
+        # someone restarted the fleet by hand.
+        #
+        # Every worker subscribes to ``imperal:catalog`` (worker_main
+        # catalog_listener) and, on a signal, re-runs catalog.load() +
+        # publish_event_catalog(), which re-walks every extension on disk and
+        # re-loads any whose files changed. The IR deploy path already did
+        # exactly this (registration.register_ir_app,
+        # I-IR-REGISTER-CATALOG-SIGNAL); the git deploy path — the one Dev
+        # Portal actually uses — never signalled at all.
+        #
+        # Signals are coalesced fleet-side (catalog_coalesce), so a burst of
+        # deploys collapses into one reload per quiet window rather than a
+        # reload storm. Best-effort: the app IS deployed at this point, so a
+        # Redis hiccup must never fail the deploy — it only costs the operator
+        # a manual restart, which is the behaviour we are removing.
+        try:
+            from imperal_kernel.core.redis import get_shared_redis
+            await get_shared_redis().publish("imperal:catalog", app_id)
+            log.info(f"Deploy {app_id}: published imperal:catalog — fleet reloads without restart")
+        except Exception as _sig_err:
+            log.warning(
+                f"Deploy {app_id}: could not publish the catalog-refresh signal "
+                f"({_sig_err}) — the app is deployed, but other workers may keep "
+                f"serving the previous code until they reload"
+            )
+
     if manifest_app_id_mismatch is not None:
         checks.append({
             "name": "manifest_app_id_mismatch",

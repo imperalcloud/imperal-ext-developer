@@ -140,10 +140,25 @@ async def _sync_tools_to_registry(app_id: str, app_dir: str, owner_id: str = "")
     Auto-creates app in Registry if missing (handles deploy-before-approve).
     """
     try:
-        sys.path.insert(0, app_dir)
+        # NOTE: app_dir is deliberately NOT pushed onto sys.path. The kernel
+        # loader resolves an extension's own modules by explicit path under an
+        # ext-unique namespace, so it needs no help -- while a leaked entry made
+        # a LATER extension's bare `import models` resolve to THIS app's
+        # models.py. There was no matching remove(), so every deploy grew
+        # sys.path permanently.
         from imperal_kernel.core.loader import ExtensionLoader
         loader = ExtensionLoader(EXTENSIONS_DIR)
         ext = loader.load(app_id)
+
+        # load() returns None when the loader REJECTED the app (app_id
+        # mismatch, sdk too old, ...). Reaching for ext.tools then raised
+        # "'NoneType' object has no attribute 'tools'", which told the operator
+        # nothing about the real cause. Say what actually happened.
+        if ext is None:
+            from imperal_kernel.core.loader import DISABLED_REASONS
+            why = DISABLED_REASONS.get(app_id) or "extension rejected by loader"
+            log.warning(f"Registry sync skipped for {app_id}: {why}")
+            return 0
 
         tools = []
         for activity_name, tool_def in ext.tools.items():
@@ -222,10 +237,16 @@ async def _sync_panel_config_to_unified_config(app_id: str, app_dir: str) -> boo
     has no panels or PUT failed (logged, non-blocking).
     """
     try:
-        sys.path.insert(0, app_dir)
+        # See _sync_tools_to_registry: app_dir must NOT go on sys.path.
         from imperal_kernel.core.loader import ExtensionLoader
         loader = ExtensionLoader(EXTENSIONS_DIR)
         ext = loader.load(app_id)
+
+        if ext is None:
+            from imperal_kernel.core.loader import DISABLED_REASONS
+            why = DISABLED_REASONS.get(app_id) or "extension rejected by loader"
+            log.warning(f"Panel config sync skipped for {app_id}: {why}")
+            return False
 
         # SDK ALLOWED_PANEL_SLOTS: left, right, center, bottom, overlay,
         # chat-sidebar. Iterate ALL of them — center and bottom and overlay
