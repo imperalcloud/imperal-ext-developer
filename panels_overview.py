@@ -36,6 +36,8 @@ async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
                     "app_id": app_id,
                     "display_name": app.get("display_name", ""),
                     "description": app.get("description", ""),
+                    "short_description": app.get("short_description", "") or "",
+                    "long_description": app.get("long_description", "") or "",
                     "category": app.get("category", "general"),
                     "git_url": app.get("git_url", ""),
                 },
@@ -44,6 +46,30 @@ async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
                            "display_name", app.get("display_name", "")),
                     _field("Description", "What does your extension do?",
                            "description", app.get("description", "")),
+                    # Storefront copy (2026-08-08). These two are what the
+                    # Marketplace actually renders; before this they were not
+                    # editable here at all.
+                    ui.Stack(children=[
+                        ui.Text("Short Description — the line on your Marketplace card",
+                                variant="caption"),
+                        ui.Input(
+                            placeholder="One line that sells your extension (max 200 chars)",
+                            param_name="short_description",
+                            value=app.get("short_description", "") or "",
+                        ),
+                        ui.Text("Leave empty and we'll use the first line of your Description.",
+                                variant="caption"),
+                    ], gap=1),
+                    ui.Stack(children=[
+                        ui.Text("Full Description — the write-up on your Marketplace page",
+                                variant="caption"),
+                        ui.TextArea(
+                            placeholder="What it does, who it's for, what makes it good. Markdown welcome.",
+                            param_name="long_description",
+                            value=app.get("long_description", "") or "",
+                            rows=8,
+                        ),
+                    ], gap=1),
                     _field("Category", "tools",
                            "category", app.get("category", "general")),
                     _field("Git URL (HTTPS)", "https://github.com/you/repo.git",

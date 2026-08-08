@@ -48,6 +48,16 @@ class UpdateAppInfoParams(BaseModel):
     app_id: str = Field(..., description="App to update")
     display_name: Optional[str] = Field(default=None, description="New display name")
     description: Optional[str] = Field(default=None, description="New description")
+    # Storefront copy (2026-08-08). short_description is the single line every
+    # Marketplace card renders; long_description is the full write-up shown on
+    # the app's detail page. Until now neither was editable by the author, so
+    # cards shipped blank.
+    short_description: Optional[str] = Field(
+        default=None,
+        description="Short description shown on the Marketplace card (max 200 chars)")
+    long_description: Optional[str] = Field(
+        default=None,
+        description="Full description shown on the Marketplace app page")
     category: Optional[str] = Field(default=None, description="New category")
     git_url: Optional[str] = Field(default=None, description="New Git URL (HTTPS)")
 
@@ -204,16 +214,23 @@ async def delete_app(ctx, params: DeleteAppParams) -> ActionResult:
 
 @chat.function("update_app_info", action_type="write",
                event="developer.update_app_info", effects=["update:app"],
-               description="Update app info (name, description, git URL) — works on active apps",
+               description="Update app info (name, descriptions shown in the Marketplace, category, git URL) — works on active apps",
                data_model=AppRecord)
 async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
-    """Update app info (name, description, git URL) — works on active apps"""
+    """Update app info (name, Marketplace descriptions, git URL) — works on active apps"""
     uid = _user_id(ctx)
     data = {}
     if params.display_name is not None:
         data["display_name"] = params.display_name
     if params.description is not None:
         data["description"] = params.description
+    if params.short_description is not None:
+        # varchar(200) in developer_apps — trim here so a long paste is saved
+        # (shortened) instead of being rejected by the gateway.
+        _sd = params.short_description.strip()
+        data["short_description"] = _sd if len(_sd) <= 200 else _sd[:197].rstrip() + "..."
+    if params.long_description is not None:
+        data["long_description"] = params.long_description
     if params.category is not None:
         data["category"] = params.category
     if params.git_url is not None:

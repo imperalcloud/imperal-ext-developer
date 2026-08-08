@@ -267,6 +267,43 @@ def get_extension_tools(app_dir: str) -> list[dict]:
     return tools
 
 
+def get_extension_tools_full(app_dir: str) -> list[dict]:
+    """Same tools as get_extension_tools, but with the FULL description text.
+
+    get_extension_tools() truncates every description to 80 chars because the
+    Pricing tab only needs a hint next to a price box. The Functions tab shows
+    the author what users actually read in the Marketplace, so it must not
+    truncate -- a description silently cut mid-sentence is exactly the kind of
+    thing an author would never notice was their own text being clipped by us.
+
+    Panels and skeleton entries are dropped (internal), and so is the
+    `tool_*_chat` orchestrator, matching what the Marketplace lists.
+    """
+    manifest = os.path.join(app_dir, "imperal.json")
+    if not os.path.isfile(manifest):
+        return []
+    try:
+        with open(manifest, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+    tools = []
+    for t in data.get("tools", []):
+        if not isinstance(t, dict):
+            continue
+        name = t.get("name", "")
+        if not name or name.startswith(("__panel__", "__widget__", "__webhook__", "skeleton_")):
+            continue
+        if name.startswith("tool_") and name.endswith("_chat"):
+            continue
+        tools.append({
+            "name": name,
+            "description": (t.get("description") or "").strip(),
+            "action_type": t.get("action_type", ""),
+        })
+    return tools
+
+
 async def validate_extension_full(app_dir: str) -> dict:
     """Run static + runtime validation. Returns unified report.
 

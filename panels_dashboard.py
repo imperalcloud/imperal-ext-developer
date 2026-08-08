@@ -2,6 +2,7 @@
 from imperal_sdk import ui
 from app import ext, _user_id, set_selected_app
 from panels_overview import build_overview
+from panels_functions import build_functions
 from panels_pricing import build_pricing
 from panels_analytics import build_analytics
 from panels_secrets import build_secrets
@@ -13,6 +14,7 @@ from panels_skeleton import build_skeleton
 
 _TABS = [
     ("overview",     "Overview",      "Info"),
+    ("functions",    "Functions",     "Wrench"),
     ("analytics",    "Analytics",     "BarChart3"),
     ("transactions", "Transactions",  "List"),
     ("pricing",      "Pricing",       "DollarSign"),
@@ -25,6 +27,7 @@ _TABS = [
 
 _BUILDERS = {
     "overview": build_overview,
+    "functions": build_functions,
     "pricing": build_pricing,
     "analytics": build_analytics,
     "secrets": build_secrets,
