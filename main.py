@@ -31,6 +31,7 @@ for _name, _mod in list(sys.modules.items()):
 
 from app import ext, chat  # noqa: F401
 import handlers            # noqa: F401
+import handlers_bulk       # noqa: F401  Bulk app ops: deploy/suspend/submit many apps in one call
 import handlers_deploy     # noqa: F401
 import handlers_payout     # noqa: F401
 import handlers_secrets    # noqa: F401  EXT-SECRETS-V1 Secrets tab handlers

@@ -8,6 +8,17 @@ App lifecycle:
 - delete_app: Permanently delete a suspended/draft app (the user must type the app_id to confirm)
 - submit_for_review: Submit an app for admin review to publish it to the marketplace
 
+Several apps at once (BULK — prefer these over looping):
+- bulk_deploy_apps / bulk_suspend_apps / bulk_submit_for_review: act on MANY apps in ONE call.
+  When the developer names more than one app in a single breath ("deploy all three", "pause
+  everything while I fix the bug", "submit both for review"), call the BULK tool ONCE with every
+  app in app_ids. NEVER loop a single-app tool: that fires one confirmation gate per app.
+- app_ids entries need not be exact ids — display names and partials resolve against the
+  developer's OWN apps. Duplicates collapse on the resolved id, so one app named twice acts once.
+- Bulk reports per-app outcomes. On partial success lead with what DID happen ("Deployed
+  matomo-analytics and mail-client; 'foo' is not one of your apps"), never hide the successes.
+- delete_app is deliberately NOT bulk: permanent deletion needs its per-app typed confirmation.
+
 Pricing:
 - update_pricing / save_pricing: Set the pricing model (free / per_action / subscription).
   For per-action pricing set per-tool prices via pricing_config={"tool_prices": {"<tool_name>": <tokens>}}.
