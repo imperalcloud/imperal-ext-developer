@@ -1,6 +1,7 @@
 """Developer Portal — right panel router / tab bar."""
 from imperal_sdk import ui
 from app import ext, _user_id, set_selected_app
+from panels_category_field import category_field
 from panels_overview import build_overview
 from panels_functions import build_functions
 from panels_pricing import build_pricing
@@ -77,7 +78,7 @@ async def developer_dashboard(ctx, app_id: str = "", tab: str = "overview",
                         _field("App ID (slug)", "my-cool-extension", "app_id"),
                         _field("Display Name", "My Cool Extension", "display_name"),
                         _field("Description", "What does your extension do?", "description"),
-                        _field("Category", "tools", "category", "general"),
+                        await category_field(),
                         _field("Git URL (HTTPS)", "https://github.com/you/repo.git", "git_url"),
                     ]),
                     ui.Section(title="Pricing", children=[

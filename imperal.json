@@ -2,7 +2,7 @@
   "manifest_schema_version": 3,
   "sdk_version": "5.9.13",
   "app_id": "developer",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "Developer Portal",
   "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
@@ -739,7 +739,7 @@
     },
     {
       "name": "update_app_info",
-      "description": "Update app info (name, description, git URL) — works on active apps",
+      "description": "Update app info (name, descriptions shown in the Marketplace, category, git URL) — works on active apps",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -778,6 +778,32 @@
             "default": null,
             "description": "New description",
             "title": "Description"
+          },
+          "short_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Short description shown on the Marketplace card (max 200 chars)",
+            "title": "Short Description"
+          },
+          "long_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Full description shown on the Marketplace app page",
+            "title": "Long Description"
           },
           "category": {
             "anyOf": [
@@ -1582,6 +1608,237 @@
         "x-sdl": "entity"
       },
       "event": "developer.save_pricing",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "bulk_deploy_apps",
+      "description": "Deploy SEVERAL of your apps in one call (git clone/pull + validate each). Use whenever the user names more than one app to deploy, or says 'deploy all my apps' / 'redeploy both'.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:app"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "description": "Target SEVERAL of your own apps at once.",
+        "properties": {
+          "app_ids": {
+            "description": "The apps to act on — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "App Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "app_ids"
+        ],
+        "title": "BulkAppsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "additionalProperties": true,
+        "description": "Uniform outcome shape for every bulk developer action.",
+        "properties": {
+          "action": {
+            "default": "",
+            "title": "Action",
+            "type": "string"
+          },
+          "succeeded": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Succeeded",
+            "type": "array"
+          },
+          "failed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "success_count": {
+            "default": 0,
+            "title": "Success Count",
+            "type": "integer"
+          },
+          "failure_count": {
+            "default": 0,
+            "title": "Failure Count",
+            "type": "integer"
+          }
+        },
+        "title": "BulkAppReceipt",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "bulk_suspend_apps",
+      "description": "Pause/suspend SEVERAL of your apps at once — takes them off the Marketplace so pricing can be edited. Use for 'pause all my apps', 'suspend these two'.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:app_status"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "description": "Target SEVERAL of your own apps at once.",
+        "properties": {
+          "app_ids": {
+            "description": "The apps to act on — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "App Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "app_ids"
+        ],
+        "title": "BulkAppsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "additionalProperties": true,
+        "description": "Uniform outcome shape for every bulk developer action.",
+        "properties": {
+          "action": {
+            "default": "",
+            "title": "Action",
+            "type": "string"
+          },
+          "succeeded": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Succeeded",
+            "type": "array"
+          },
+          "failed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "success_count": {
+            "default": 0,
+            "title": "Success Count",
+            "type": "integer"
+          },
+          "failure_count": {
+            "default": 0,
+            "title": "Failure Count",
+            "type": "integer"
+          }
+        },
+        "title": "BulkAppReceipt",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "bulk_submit_for_review",
+      "description": "Submit SEVERAL of your apps for Marketplace review in one call. Use for 'publish both', 'submit all my drafts for review'.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:app_status"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "description": "Target SEVERAL of your own apps at once.",
+        "properties": {
+          "app_ids": {
+            "description": "The apps to act on — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "App Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "app_ids"
+        ],
+        "title": "BulkAppsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "additionalProperties": true,
+        "description": "Uniform outcome shape for every bulk developer action.",
+        "properties": {
+          "action": {
+            "default": "",
+            "title": "Action",
+            "type": "string"
+          },
+          "succeeded": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Succeeded",
+            "type": "array"
+          },
+          "failed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "success_count": {
+            "default": 0,
+            "title": "Success Count",
+            "type": "integer"
+          },
+          "failure_count": {
+            "default": 0,
+            "title": "Failure Count",
+            "type": "integer"
+          }
+        },
+        "title": "BulkAppReceipt",
+        "type": "object"
+      },
+      "event": "",
       "background": false,
       "long_running": false,
       "scopes": [],

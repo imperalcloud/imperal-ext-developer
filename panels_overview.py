@@ -2,6 +2,7 @@
 from imperal_sdk import ui
 from imperal_sdk.ui.base import UINode
 from app import _gw_get, EXTENSIONS_DIR
+from panels_category_field import category_field
 from queries import get_latest_deploy
 from validation import get_disk_version
 import os
@@ -70,8 +71,7 @@ async def build_overview(uid: str, app_id: str, view: str = "", **kwargs):
                             rows=8,
                         ),
                     ], gap=1),
-                    _field("Category", "tools",
-                           "category", app.get("category", "general")),
+                    await category_field(app.get("category", "") or ""),
                     _field("Git URL (HTTPS)", "https://github.com/you/repo.git",
                            "git_url", app.get("git_url", "")),
                 ],
