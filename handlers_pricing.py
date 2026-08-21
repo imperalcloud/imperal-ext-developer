@@ -185,7 +185,12 @@ async def apply_pricing(
     problems = config_mismatches(desired, stored)
     stored_model = (fresh.get("pricing_model") or "").lower()
     if stored_model != model:
-        problems.insert(0, f"model stored as '{stored_model or "?"}', expected '{model}'")
+        # Kept out of the f-string on purpose: nesting the SAME quote inside an
+        # f-string only parses on Python 3.12+ (PEP 701), and the platform
+        # workers run 3.11 -- a local 3.14 venv compiles it happily and the
+        # deploy then fails on syntax. Plain and version-neutral beats clever.
+        shown = stored_model or "?"
+        problems.insert(0, f"model stored as '{shown}', expected '{model}'")
 
     if problems:
         return ActionResult.error(
