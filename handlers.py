@@ -62,24 +62,6 @@ class UpdateAppInfoParams(BaseModel):
     git_url: Optional[str] = Field(default=None, description="New Git URL (HTTPS)")
 
 
-class UpdatePricingParams(BaseModel):
-    app_id: str = Field(..., description="App to update pricing")
-    pricing_model: str = Field(..., description="free, per_action, or subscription")
-    pricing_config: dict = Field(default_factory=dict, description="Price config")
-    # None = keep the developer's current (tier-derived) split. Only an explicit
-    # value changes it, so a pricing-model edit can't silently downgrade the share.
-    revenue_split_dev: Optional[int] = Field(default=None, description="Developer share % (unset = keep current)")
-
-
-class SavePricingParams(BaseModel):
-    app_id: str = Field(..., description="App to update pricing")
-    pricing_model: str = Field(default="free", description="free, per_action, or subscription")
-    monthly_price: Optional[str] = Field(default="0", description="Monthly price for subscription")
-
-    class Config:
-        extra = "allow"
-
-
 # ---------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------
@@ -247,81 +229,3 @@ async def update_app_info(ctx, params: UpdateAppInfoParams) -> ActionResult:
         )
     except Exception as e:
         return ActionResult.error(f"Failed to update: {e}")
-
-
-@chat.function("update_pricing", action_type="write",
-               event="developer.update_pricing", effects=["update:app_pricing"],
-               description="Update app pricing model (requires paused app)",
-               data_model=AppRecord)
-async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
-    """Update app pricing model (requires paused app)"""
-    uid = _user_id(ctx)
-    payload = {
-        "user_id": uid,
-        "pricing_model": params.pricing_model,
-        "pricing_config": params.pricing_config,
-    }
-    # Only send the split when explicitly provided — otherwise a routine
-    # pricing-model change would reset a Studio/Partner split (85/95%) down to a
-    # default and quietly cut the developer's share.
-    if params.revenue_split_dev is not None:
-        payload["revenue_split_dev"] = params.revenue_split_dev
-    try:
-        result = await _gw_put(f"/v1/developer/apps/{params.app_id}", payload)
-        return ActionResult.success(data=result, summary=f"Pricing updated for '{params.app_id}'.")
-    except Exception as e:
-        return ActionResult.error(f"Failed to update pricing: {e}")
-
-
-@chat.function("save_pricing", action_type="write",
-               event="developer.save_pricing", effects=["update:app_pricing"],
-               description="Save pricing model and per-tool prices from the pricing form",
-               data_model=AppRecord)
-async def save_pricing(ctx, params: SavePricingParams) -> ActionResult:
-    """Save pricing model and per-tool prices from the pricing form"""
-    uid = _user_id(ctx)
-
-    # Extract per-tool prices from extra fields (price_toolname=value)
-    tool_prices = {}
-    extra = params.model_extra or {}
-    for key, val in extra.items():
-        if key.startswith("price_"):
-            tool_name = key[6:]
-            try:
-                price = int(val) if val and str(val).isdigit() else 0
-            except (ValueError, TypeError):
-                price = 0
-            if price > 0:
-                tool_prices[tool_name] = price
-
-    # Build pricing_config
-    pricing_config = {}
-    if tool_prices:
-        pricing_config["tool_prices"] = tool_prices
-    monthly = 0
-    if params.monthly_price:
-        try:
-            monthly = int(params.monthly_price)
-        except (ValueError, TypeError):
-            pass
-    if monthly > 0:
-        pricing_config["monthly_price"] = monthly
-
-    try:
-        result = await _gw_put(f"/v1/developer/apps/{params.app_id}", {
-            "user_id": uid,
-            "pricing_model": params.pricing_model,
-            "pricing_config": pricing_config,
-        })
-        summary_parts = [f"Model: {params.pricing_model}"]
-        if tool_prices:
-            summary_parts.append(f"{len(tool_prices)} tool prices set")
-        if monthly > 0:
-            summary_parts.append(f"monthly: {monthly} tok")
-        return ActionResult.success(
-            data=result,
-            summary=f"Pricing saved for '{params.app_id}': {', '.join(summary_parts)}",
-        refresh_panels=["sidebar", "dashboard"],
-        )
-    except Exception as e:
-        return ActionResult.error(f"Failed to save pricing: {e}")

@@ -32,8 +32,10 @@ for _name, _mod in list(sys.modules.items()):
 from app import ext, chat  # noqa: F401
 import handlers            # noqa: F401
 import handlers_bulk       # noqa: F401  Bulk app ops: deploy/suspend/submit many apps in one call
+import handlers_bulk_pricing  # noqa: F401  bulk_set_pricing (split from handlers_bulk: 300-line ceiling)
 import handlers_deploy     # noqa: F401
 import handlers_payout     # noqa: F401
+import handlers_pricing    # noqa: F401  save_pricing/update_pricing (split from handlers) + verified write path
 import handlers_secrets    # noqa: F401  EXT-SECRETS-V1 Secrets tab handlers
 import handlers_submit     # noqa: F401  submit_for_review (split from handlers_deploy)
 import handlers_skeleton   # noqa: F401  save_skeleton_ttl (split from handlers)

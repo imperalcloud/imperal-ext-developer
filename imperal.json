@@ -1068,7 +1068,7 @@
     },
     {
       "name": "update_pricing",
-      "description": "Update app pricing model (requires paused app)",
+      "description": "Update an app's pricing model with an explicit pricing_config (requires paused app)",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1076,6 +1076,7 @@
       ],
       "id_projection": "",
       "params_schema": {
+        "description": "Lower-level pricing update (explicit pricing_config).",
         "properties": {
           "app_id": {
             "description": "App to update pricing",
@@ -1344,7 +1345,7 @@
     },
     {
       "name": "save_pricing",
-      "description": "Save pricing model and per-tool prices from the pricing form",
+      "description": "Set what an app's actions cost (per-action token prices), its pricing model, or its monthly price — then verify the change actually stored. Actions not mentioned keep their price; 0 makes one free. Requires a paused/draft app. For SEVERAL apps use bulk_set_pricing.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1353,17 +1354,32 @@
       "id_projection": "",
       "params_schema": {
         "additionalProperties": true,
+        "description": "Set an app's pricing model and what each of its actions costs.",
         "properties": {
           "app_id": {
-            "description": "App to update pricing",
+            "description": "App whose pricing to set",
             "title": "App Id",
             "type": "string"
           },
           "pricing_model": {
-            "default": "free",
-            "description": "free, per_action, or subscription",
+            "default": "",
+            "description": "free, per_action, or subscription. Leave unset to keep the app's current model while changing prices.",
             "title": "Pricing Model",
             "type": "string"
+          },
+          "tool_prices": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Per-action prices in tokens, keyed by the action/function name — e.g. {'search_web': 50, 'fetch_page': 20}. Actions you do not mention keep their current price; pass 0 to make one free again.",
+            "title": "Tool Prices"
           },
           "monthly_price": {
             "anyOf": [
@@ -1374,9 +1390,22 @@
                 "type": "null"
               }
             ],
-            "default": "0",
-            "description": "Monthly price for subscription",
+            "default": null,
+            "description": "Monthly token price for the subscription model (0 removes it)",
             "title": "Monthly Price"
+          },
+          "revenue_split_dev": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Developer share % (unset = keep current)",
+            "title": "Revenue Split Dev"
           }
         },
         "required": [
@@ -1794,6 +1823,129 @@
           "app_ids"
         ],
         "title": "BulkAppsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "additionalProperties": true,
+        "description": "Uniform outcome shape for every bulk developer action.",
+        "properties": {
+          "action": {
+            "default": "",
+            "title": "Action",
+            "type": "string"
+          },
+          "succeeded": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Succeeded",
+            "type": "array"
+          },
+          "failed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "success_count": {
+            "default": 0,
+            "title": "Success Count",
+            "type": "integer"
+          },
+          "failure_count": {
+            "default": 0,
+            "title": "Failure Count",
+            "type": "integer"
+          }
+        },
+        "title": "BulkAppReceipt",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "bulk_set_pricing",
+      "description": "Set per-action prices (or the pricing model / monthly price) on SEVERAL of your apps at once, verifying each write. Use for 'charge 50 tokens for search in all my apps', 'make both apps free', 'price these three the same'. Apps must be paused/draft.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:app_pricing"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "description": "Price SEVERAL of your own apps in one call.",
+        "properties": {
+          "app_ids": {
+            "description": "The apps to price — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "App Ids",
+            "type": "array"
+          },
+          "pricing_model": {
+            "default": "",
+            "description": "free, per_action, or subscription. Unset keeps each app's current model, so prices can be changed without touching the model.",
+            "title": "Pricing Model",
+            "type": "string"
+          },
+          "tool_prices": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Per-action prices in tokens, {action_name: price}, applied to EVERY named app. An action not listed keeps its current price; 0 makes it free. An app lacking a named action is reported as a failure for that app only — the others still change. Example: {'search': 50, 'export': 200}.",
+            "title": "Tool Prices"
+          },
+          "monthly_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monthly token price (subscription model)",
+            "title": "Monthly Price"
+          },
+          "revenue_split_dev": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Developer share % (unset = keep each app's current)",
+            "title": "Revenue Split Dev"
+          }
+        },
+        "required": [
+          "app_ids"
+        ],
+        "title": "BulkPricingParams",
         "type": "object"
       },
       "return_schema": {
