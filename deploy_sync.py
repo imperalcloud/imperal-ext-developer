@@ -160,14 +160,44 @@ async def _sync_tools_to_registry(app_id: str, app_dir: str, owner_id: str = "")
             log.warning(f"Registry sync skipped for {app_id}: {why}")
             return 0
 
+        # I-CALLABLE-SURFACE-SINGLE-SOURCE (2026-08-21): iterate the app's WHOLE
+        # callable surface, not one of its two registries.
+        #
+        # This loop used to read ``ext.tools`` alone. That registry holds
+        # ``@ext.tool`` entries plus synthetic ``__panel__*``/``__tray__*``
+        # plumbing -- it does NOT hold ``@chat.function`` declarations, which
+        # live on ``ext._chat_extensions[*].functions``. For WordPress Hub (260
+        # chat functions, 1 tool, 3 panels, 1 skeleton) that meant the deploy
+        # reported "5 of 259 functions synced" and the catalog served 5 -- while
+        # the manifest, which reads BOTH registries, correctly listed 260.
+        #
+        # ``callable_functions`` is the single source of truth, pinned by a
+        # federal SDK test asserting it equals the manifest's tool names.
+        try:
+            from imperal_sdk.catalog import callable_functions
+            surface = callable_functions(ext)
+        except ImportError:
+            # SDK older than the catalog module: degrade to the historical
+            # behaviour rather than fail the deploy. Under-reporting is the bug
+            # being fixed here, but a hard failure would be strictly worse.
+            log.warning("imperal_sdk.catalog unavailable for %s -- falling back "
+                        "to ext.tools (chat functions under-reported until the "
+                        "SDK is updated)", app_id)
+            surface = [
+                {"name": n, "description": getattr(td, "description", "") or "",
+                 "scopes": list(getattr(td, "scopes", None) or [])}
+                for n, td in ext.tools.items() if not str(n).startswith("__")
+            ]
+
         tools = []
-        for activity_name, tool_def in ext.tools.items():
+        for entry in surface:
+            activity_name = entry["name"]
             tools.append({
                 "activity": activity_name,
-                "name": getattr(tool_def, "display_name", "") or activity_name,
-                "description": getattr(tool_def, "description", "") or "",
+                "name": activity_name,
+                "description": entry.get("description", "") or "",
                 "domains": [],
-                "required_scopes": getattr(tool_def, "scopes", ["*"]) or ["*"],
+                "required_scopes": list(entry.get("scopes") or []) or ["*"],
             })
 
         skeleton = _derive_skeleton_sections_from_ext(ext)

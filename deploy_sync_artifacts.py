@@ -84,10 +84,45 @@ async def sync_icon_and_manifest_to_gw(app_id: str, app_dir: str, gw_post) -> di
     manifest_path = os.path.join(app_dir, "imperal.json")
     if os.path.isfile(manifest_path):
         try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest_blob = f.read()
-            if 0 < len(manifest_blob) <= _MANIFEST_MAX_BYTES:
-                sync_payload: dict = {"manifest_json": manifest_blob}
+            # B-manifest-indent (2026-08-21): send the PARSED manifest, never the
+            # file's raw text.
+            #
+            # ``imperal.json`` is written pretty-printed (indent=2). WordPress
+            # Hub's is 1212 KB on disk -- over the gateway's 1 MB cap -- so the
+            # size guard skipped the POST entirely and the deploy reported
+            # ``manifest_synced=false`` with no error anywhere: no exception was
+            # raised, so the except branch never logged. The SAME manifest
+            # serialized compactly is 609 KB, comfortably inside the cap; the
+            # 603 KB difference was pure indentation whitespace.
+            #
+            # The gateway compacts a dict payload itself (json.dumps with
+            # separators=(',',':')), so posting the dict both fixes the false
+            # rejection and makes this size check measure what the server will
+            # actually store.
+            import json as _json
+            manifest_payload: object
+            if _manifest_dict:
+                manifest_payload = _manifest_dict
+                measured = len(_json.dumps(_manifest_dict, separators=(",", ":"),
+                                           ensure_ascii=False).encode("utf-8"))
+            else:
+                # Unparseable manifest: fall back to the raw text so a
+                # hand-edited file still syncs.
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    manifest_payload = f.read()
+                measured = len(str(manifest_payload).encode("utf-8"))
+
+            if measured > _MANIFEST_MAX_BYTES:
+                # Say it out loud. The silent skip is what made this bug take
+                # months to attribute.
+                log.warning(
+                    "manifest_json sync SKIPPED for %s: %d bytes (compact) exceeds "
+                    "the %d byte gateway cap -- ctx.secrets and marketplace "
+                    "metadata stay stale until the manifest shrinks",
+                    app_id, measured, _MANIFEST_MAX_BYTES,
+                )
+            elif measured > 0:
+                sync_payload: dict = {"manifest_json": manifest_payload}
                 # I-SYSTEM-FLAG-MANIFEST-SYNC (2026-07-16): the manifest's own
                 # top-level `system` bool declares first-party-app INTENT, but
                 # nothing ever mirrored it onto developer_apps.system — the
