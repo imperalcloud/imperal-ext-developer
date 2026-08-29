@@ -88,6 +88,7 @@ async def apply_pricing(
     extras: Optional[dict] = None,
     monthly_price=None,
     revenue_split_dev: Optional[int] = None,
+    pricing_config: Optional[dict] = None,
 ) -> ActionResult:
     """Set pricing on ONE app, then prove it by reading the app back.
 
@@ -119,11 +120,18 @@ async def apply_pricing(
         except Exception:                                      # noqa: BLE001
             current_config = {}
 
-    # 2. Build the desired state from validated input.
+    # 2. Build the desired state from validated input. save_pricing is a
+    # partial merge; update_pricing supplies a full explicit replacement.
     try:
         model = normalise_model(pricing_model, app.get("pricing_model"))
-        incoming = collect_tool_prices(tool_prices, extras)
-        desired = build_pricing_config(current_config, incoming, monthly_price)
+        if pricing_config is None:
+            incoming = collect_tool_prices(tool_prices, extras)
+            desired = build_pricing_config(current_config, incoming, monthly_price)
+        else:
+            if not isinstance(pricing_config, dict):
+                raise PricingError("pricing_config must be an object")
+            incoming = collect_tool_prices(pricing_config.get("tool_prices") or {}, None)
+            desired = build_pricing_config({}, incoming, pricing_config.get("monthly_price"))
     except PricingError as exc:
         return ActionResult.error(str(exc))
 
@@ -261,7 +269,6 @@ async def update_pricing(ctx, params: UpdatePricingParams) -> ActionResult:
         ctx,
         params.app_id,
         pricing_model=params.pricing_model,
-        tool_prices=config.get("tool_prices") or {},
-        monthly_price=config.get("monthly_price"),
         revenue_split_dev=params.revenue_split_dev,
+        pricing_config=config,
     )

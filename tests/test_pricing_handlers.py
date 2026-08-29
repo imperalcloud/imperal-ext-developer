@@ -115,6 +115,23 @@ async def test_a_live_app_is_refused_before_any_write(ctx, monkeypatch):
     assert gw.puts == [], "a live app must be refused without attempting a write"
 
 
+@pytest.mark.asyncio
+async def test_explicit_update_replaces_config_instead_of_merging(ctx, monkeypatch):
+    """update_pricing({}) must clear old prices; save_pricing is the merge API."""
+    gw = _wire(monkeypatch, _Gateway())
+
+    res = await hp.update_pricing(
+        ctx,
+        hp.UpdatePricingParams(
+            app_id="search-tools", pricing_model="free", pricing_config={},
+        ),
+    )
+
+    assert res.status == "success", res.error
+    assert gw.apps["search-tools"]["pricing_model"] == "free"
+    assert gw.apps["search-tools"]["pricing_config"] == {}
+
+
 # ─── 5. bulk: the same guarantee, N times ─────────────────────────────── #
 
 @pytest.mark.asyncio
