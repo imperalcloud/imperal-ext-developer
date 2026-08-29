@@ -13,6 +13,7 @@ and stores nothing, which is precisely how the original defect looked from
 the caller's side. Any pricing path that reports success against it is
 lying.
 """
+import copy
 import json
 import sys
 from pathlib import Path
@@ -67,7 +68,7 @@ class _Gateway:
         app_id = path.split("/v1/developer/apps/")[1].split("?")[0]
         if app_id not in self.apps:
             raise RuntimeError(f"404 {app_id}")
-        return dict(self.apps[app_id])
+        return copy.deepcopy(self.apps[app_id])
 
     async def put(self, path, data):
         app_id = path.split("/v1/developer/apps/")[1]
@@ -79,9 +80,13 @@ class _Gateway:
         return dict(app)
 
     def _store(self, app, data):
+        # A real JSON HTTP request crosses a serialization boundary: storage
+        # cannot alias the handler's in-memory payload. Preserve that boundary
+        # here so corruption-after-write tests compare stored state to the
+        # original requested value rather than to a shared mutable object.
         for key in ("pricing_model", "pricing_config", "revenue_split_dev"):
             if key in data:
-                app[key] = data[key]
+                app[key] = copy.deepcopy(data[key])
 
 
 class _LyingGateway(_Gateway):
@@ -89,6 +94,16 @@ class _LyingGateway(_Gateway):
 
     def _store(self, app, data):
         return None
+
+
+class _CorruptingGateway(_Gateway):
+    """Acknowledges a write but persists a wrong price, reproducing 5 -> 15."""
+
+    def _store(self, app, data):
+        super()._store(app, data)
+        prices = app.get("pricing_config", {}).get("tool_prices", {})
+        if prices.get("create_site_profile") == 5:
+            prices["create_site_profile"] = 15
 
 
 class _JsonStringGateway(_Gateway):

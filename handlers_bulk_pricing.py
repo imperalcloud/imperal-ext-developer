@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
 
 from app import chat
+from pricing_input import AppIds, JsonObject
 from handlers_bulk import (
     _MAX_APPS,
     BulkAppReceipt,
@@ -37,7 +38,7 @@ log = logging.getLogger("developer.handlers_bulk_pricing")
 class BulkPricingParams(BaseModel):
     """Price SEVERAL of your own apps in one call."""
 
-    app_ids: list[str] = Field(
+    app_ids: AppIds = Field(
         description=(
             "The apps to price — exact app_ids, display names, or partials of "
             "either; each is resolved against YOUR apps. Pass EVERY app the "
@@ -53,7 +54,7 @@ class BulkPricingParams(BaseModel):
             "model, so prices can be changed without touching the model."
         ),
     )
-    tool_prices: Optional[dict] = Field(
+    tool_prices: Optional[JsonObject] = Field(
         default=None,
         description=(
             "Per-action prices in tokens, {action_name: price}, applied to "
@@ -72,6 +73,7 @@ class BulkPricingParams(BaseModel):
 @chat.function(
     "bulk_set_pricing",
     action_type="write",
+    event="developer.bulk_set_pricing",
     effects=["update:app_pricing"],
     data_model=BulkAppReceipt,
     description=(

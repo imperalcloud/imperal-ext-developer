@@ -197,6 +197,7 @@ async def _run_each(ctx, targets, runner, params_factory):
 @chat.function(
     "bulk_deploy_apps",
     action_type="write",
+    event="developer.bulk_deploy_apps",
     effects=["update:app"],
     data_model=BulkAppReceipt,
     description=(
@@ -222,6 +223,7 @@ async def fn_bulk_deploy_apps(ctx, params: BulkAppsParams) -> ActionResult:
 @chat.function(
     "bulk_suspend_apps",
     action_type="write",
+    event="developer.bulk_suspend_apps",
     effects=["update:app_status"],
     data_model=BulkAppReceipt,
     description=(
@@ -244,6 +246,7 @@ async def fn_bulk_suspend_apps(ctx, params: BulkAppsParams) -> ActionResult:
 @chat.function(
     "bulk_submit_for_review",
     action_type="write",
+    event="developer.bulk_submit_for_review",
     effects=["update:app_status"],
     data_model=BulkAppReceipt,
     description=(

@@ -22,6 +22,7 @@ import handlers_bulk_pricing as hbp   # noqa: E402
 import handlers_pricing as hp         # noqa: E402
 
 from _pricing_fixtures import (        # noqa: E402,F401
+    _CorruptingGateway,
     _Gateway,
     _JsonStringGateway,
     _LyingGateway,
@@ -49,6 +50,22 @@ async def test_a_gateway_that_stores_nothing_is_reported_as_failure(ctx, monkeyp
         "a write that did not land must never be reported as saved"
     )
     assert "did NOT save" in res.error
+
+
+@pytest.mark.asyncio
+async def test_wrong_price_persisted_is_reported_as_failure(ctx, monkeypatch):
+    """A gateway that turns create_site_profile=5 into 15 cannot fake success."""
+    _wire(monkeypatch, _CorruptingGateway(), known=("search", "export", "fetch", "create_site_profile"))
+
+    res = await hp.save_pricing(
+        ctx,
+        hp.SavePricingParams(
+            app_id="search-tools", tool_prices={"create_site_profile": 5},
+        ),
+    )
+
+    assert res.status == "error"
+    assert "stored as 15, expected 5" in res.error
 
 
 @pytest.mark.asyncio

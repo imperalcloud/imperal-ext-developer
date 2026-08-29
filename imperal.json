@@ -1,8 +1,8 @@
 {
   "manifest_schema_version": 3,
-  "sdk_version": "5.9.13",
+  "sdk_version": "5.13.0",
   "app_id": "developer",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "name": "Developer Portal",
   "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
@@ -1067,582 +1067,6 @@
       "owner_chat_tool": "tool_developer_chat"
     },
     {
-      "name": "update_pricing",
-      "description": "Update an app's pricing model with an explicit pricing_config (requires paused app)",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": [
-        "update:app_pricing"
-      ],
-      "id_projection": "",
-      "params_schema": {
-        "description": "Lower-level pricing update (explicit pricing_config).",
-        "properties": {
-          "app_id": {
-            "description": "App to update pricing",
-            "title": "App Id",
-            "type": "string"
-          },
-          "pricing_model": {
-            "description": "free, per_action, or subscription",
-            "title": "Pricing Model",
-            "type": "string"
-          },
-          "pricing_config": {
-            "additionalProperties": true,
-            "description": "Price config",
-            "title": "Pricing Config",
-            "type": "object"
-          },
-          "revenue_split_dev": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Developer share % (unset = keep current)",
-            "title": "Revenue Split Dev"
-          }
-        },
-        "required": [
-          "app_id",
-          "pricing_model"
-        ],
-        "title": "UpdatePricingParams",
-        "type": "object"
-      },
-      "return_schema": {
-        "description": "An extension app (kind='app').\n\nMirrors AppResponse (returned verbatim by create_app / update_app_info /\nupdate_pricing / save_pricing): app_id, developer_id, display_name,\ndescription, category, icon, git_url, status, reject_reason,\npricing_model, pricing_config, revenue_split_dev, created_at, updated_at.",
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              }
-            ],
-            "title": "Id"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "kind": {
-            "default": "",
-            "title": "Kind",
-            "type": "string"
-          },
-          "subtitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Subtitle"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Description"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Status"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Url"
-          },
-          "app_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "App Id"
-          },
-          "developer_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Developer Id"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "category": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Category"
-          },
-          "icon": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Icon"
-          },
-          "git_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Git Url"
-          },
-          "reject_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Reject Reason"
-          },
-          "pricing_model": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Pricing Model"
-          },
-          "pricing_config": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Pricing Config"
-          },
-          "revenue_split_dev": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Revenue Split Dev"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Created At"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Updated At"
-          }
-        },
-        "required": [
-          "id",
-          "title"
-        ],
-        "title": "AppRecord",
-        "type": "object",
-        "x-sdl": "entity"
-      },
-      "event": "developer.update_pricing",
-      "background": false,
-      "long_running": false,
-      "scopes": [],
-      "owner_chat_tool": "tool_developer_chat"
-    },
-    {
-      "name": "save_pricing",
-      "description": "Set what an app's actions cost (per-action token prices), its pricing model, or its monthly price — then verify the change actually stored. Actions not mentioned keep their price; 0 makes one free. Requires a paused/draft app. For SEVERAL apps use bulk_set_pricing.",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": [
-        "update:app_pricing"
-      ],
-      "id_projection": "",
-      "params_schema": {
-        "additionalProperties": true,
-        "description": "Set an app's pricing model and what each of its actions costs.",
-        "properties": {
-          "app_id": {
-            "description": "App whose pricing to set",
-            "title": "App Id",
-            "type": "string"
-          },
-          "pricing_model": {
-            "default": "",
-            "description": "free, per_action, or subscription. Leave unset to keep the app's current model while changing prices.",
-            "title": "Pricing Model",
-            "type": "string"
-          },
-          "tool_prices": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Per-action prices in tokens, keyed by the action/function name — e.g. {'search_web': 50, 'fetch_page': 20}. Actions you do not mention keep their current price; pass 0 to make one free again.",
-            "title": "Tool Prices"
-          },
-          "monthly_price": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Monthly token price for the subscription model (0 removes it)",
-            "title": "Monthly Price"
-          },
-          "revenue_split_dev": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Developer share % (unset = keep current)",
-            "title": "Revenue Split Dev"
-          }
-        },
-        "required": [
-          "app_id"
-        ],
-        "title": "SavePricingParams",
-        "type": "object"
-      },
-      "return_schema": {
-        "description": "An extension app (kind='app').\n\nMirrors AppResponse (returned verbatim by create_app / update_app_info /\nupdate_pricing / save_pricing): app_id, developer_id, display_name,\ndescription, category, icon, git_url, status, reject_reason,\npricing_model, pricing_config, revenue_split_dev, created_at, updated_at.",
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              }
-            ],
-            "title": "Id"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "kind": {
-            "default": "",
-            "title": "Kind",
-            "type": "string"
-          },
-          "subtitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Subtitle"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Description"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Status"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Url"
-          },
-          "app_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "App Id"
-          },
-          "developer_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Developer Id"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "category": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Category"
-          },
-          "icon": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Icon"
-          },
-          "git_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Git Url"
-          },
-          "reject_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Reject Reason"
-          },
-          "pricing_model": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Pricing Model"
-          },
-          "pricing_config": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Pricing Config"
-          },
-          "revenue_split_dev": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Revenue Split Dev"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Created At"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Updated At"
-          }
-        },
-        "required": [
-          "id",
-          "title"
-        ],
-        "title": "AppRecord",
-        "type": "object",
-        "x-sdl": "entity"
-      },
-      "event": "developer.save_pricing",
-      "background": false,
-      "long_running": false,
-      "scopes": [],
-      "owner_chat_tool": "tool_developer_chat"
-    },
-    {
       "name": "bulk_deploy_apps",
       "description": "Deploy SEVERAL of your apps in one call (git clone/pull + validate each). Use whenever the user names more than one app to deploy, or says 'deploy all my apps' / 'redeploy both'.",
       "action_type": "write",
@@ -1713,7 +1137,7 @@
         "title": "BulkAppReceipt",
         "type": "object"
       },
-      "event": "",
+      "event": "developer.bulk_deploy_apps",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1790,7 +1214,7 @@
         "title": "BulkAppReceipt",
         "type": "object"
       },
-      "event": "",
+      "event": "developer.bulk_suspend_apps",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1867,7 +1291,7 @@
         "title": "BulkAppReceipt",
         "type": "object"
       },
-      "event": "",
+      "event": "developer.bulk_submit_for_review",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -1990,7 +1414,7 @@
         "title": "BulkAppReceipt",
         "type": "object"
       },
-      "event": "",
+      "event": "developer.bulk_set_pricing",
       "background": false,
       "long_running": false,
       "scopes": [],
@@ -2919,6 +2343,582 @@
         "x-sdl": "entity-list"
       },
       "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "save_pricing",
+      "description": "Set what an app's actions cost (per-action token prices), its pricing model, or its monthly price — then verify the change actually stored. Actions not mentioned keep their price; 0 makes one free. Requires a paused/draft app. For SEVERAL apps use bulk_set_pricing.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:app_pricing"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "additionalProperties": true,
+        "description": "Set an app's pricing model and what each of its actions costs.",
+        "properties": {
+          "app_id": {
+            "description": "App whose pricing to set",
+            "title": "App Id",
+            "type": "string"
+          },
+          "pricing_model": {
+            "default": "",
+            "description": "free, per_action, or subscription. Leave unset to keep the app's current model while changing prices.",
+            "title": "Pricing Model",
+            "type": "string"
+          },
+          "tool_prices": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Per-action prices in tokens, keyed by the action/function name — e.g. {'search_web': 50, 'fetch_page': 20}. Actions you do not mention keep their current price; pass 0 to make one free again.",
+            "title": "Tool Prices"
+          },
+          "monthly_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monthly token price for the subscription model (0 removes it)",
+            "title": "Monthly Price"
+          },
+          "revenue_split_dev": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Developer share % (unset = keep current)",
+            "title": "Revenue Split Dev"
+          }
+        },
+        "required": [
+          "app_id"
+        ],
+        "title": "SavePricingParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "description": "An extension app (kind='app').\n\nMirrors AppResponse (returned verbatim by create_app / update_app_info /\nupdate_pricing / save_pricing): app_id, developer_id, display_name,\ndescription, category, icon, git_url, status, reject_reason,\npricing_model, pricing_config, revenue_split_dev, created_at, updated_at.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "kind": {
+            "default": "",
+            "title": "Kind",
+            "type": "string"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Subtitle"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Status"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Url"
+          },
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "App Id"
+          },
+          "developer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Developer Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Icon"
+          },
+          "git_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Git Url"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reject Reason"
+          },
+          "pricing_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pricing Model"
+          },
+          "pricing_config": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pricing Config"
+          },
+          "revenue_split_dev": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revenue Split Dev"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "AppRecord",
+        "type": "object",
+        "x-sdl": "entity"
+      },
+      "event": "developer.save_pricing",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "update_pricing",
+      "description": "Update an app's pricing model with an explicit pricing_config (requires paused app)",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:app_pricing"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "description": "Lower-level pricing update (explicit pricing_config).",
+        "properties": {
+          "app_id": {
+            "description": "App to update pricing",
+            "title": "App Id",
+            "type": "string"
+          },
+          "pricing_model": {
+            "description": "free, per_action, or subscription",
+            "title": "Pricing Model",
+            "type": "string"
+          },
+          "pricing_config": {
+            "additionalProperties": true,
+            "description": "Price config",
+            "title": "Pricing Config",
+            "type": "object"
+          },
+          "revenue_split_dev": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Developer share % (unset = keep current)",
+            "title": "Revenue Split Dev"
+          }
+        },
+        "required": [
+          "app_id",
+          "pricing_model"
+        ],
+        "title": "UpdatePricingParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "description": "An extension app (kind='app').\n\nMirrors AppResponse (returned verbatim by create_app / update_app_info /\nupdate_pricing / save_pricing): app_id, developer_id, display_name,\ndescription, category, icon, git_url, status, reject_reason,\npricing_model, pricing_config, revenue_split_dev, created_at, updated_at.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "kind": {
+            "default": "",
+            "title": "Kind",
+            "type": "string"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Subtitle"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Status"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Url"
+          },
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "App Id"
+          },
+          "developer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Developer Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Icon"
+          },
+          "git_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Git Url"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reject Reason"
+          },
+          "pricing_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pricing Model"
+          },
+          "pricing_config": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pricing Config"
+          },
+          "revenue_split_dev": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revenue Split Dev"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "AppRecord",
+        "type": "object",
+        "x-sdl": "entity"
+      },
+      "event": "developer.update_pricing",
       "background": false,
       "long_running": false,
       "scopes": [],

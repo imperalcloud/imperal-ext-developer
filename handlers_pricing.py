@@ -27,6 +27,8 @@ from imperal_sdk.chat import ActionResult
 
 from app import chat, _gw_get, _gw_put, _user_id, EXTENSIONS_DIR
 from models_sdl import AppRecord
+from pricing_catalog import known_tools as _known_tools
+from pricing_input import JsonObject, PricingConfig
 from pricing_rules import (
     PricingError,
     build_pricing_config,
@@ -57,7 +59,7 @@ class SavePricingParams(BaseModel):
     )
     # THE field whose absence was the original bug: without it there was no
     # way for a caller to express a price at all.
-    tool_prices: Optional[dict] = Field(
+    tool_prices: Optional[JsonObject] = Field(
         default=None,
         description=(
             "Per-action prices in tokens, keyed by the action/function name — "
@@ -76,17 +78,6 @@ class SavePricingParams(BaseModel):
 
 
 # ─── Shared write+verify path ─────────────────────────────────────────── #
-
-def _known_tools(app_id: str) -> list[str]:
-    """Action names from the deployed manifest, or [] if not deployed yet."""
-    try:
-        from validation import get_extension_tools
-        tools = get_extension_tools(os.path.join(EXTENSIONS_DIR, app_id))
-        return [t.get("name", "") for t in tools if t.get("name")]
-    except Exception as exc:                                   # noqa: BLE001
-        log.debug("tool list unavailable for %s: %s", app_id, exc)
-        return []
-
 
 async def apply_pricing(
     ctx,
@@ -249,7 +240,7 @@ class UpdatePricingParams(BaseModel):
 
     app_id: str = Field(..., description="App to update pricing")
     pricing_model: str = Field(..., description="free, per_action, or subscription")
-    pricing_config: dict = Field(default_factory=dict, description="Price config")
+    pricing_config: PricingConfig = Field(default_factory=dict, description="Price config")
     revenue_split_dev: Optional[int] = Field(
         default=None, description="Developer share % (unset = keep current)"
     )
