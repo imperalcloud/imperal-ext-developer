@@ -1,13 +1,4 @@
-"""Developer Portal — deploy & submit handlers (split from handlers.py).
-
-Slim handler module: only @chat.function entries. Implementation details:
-
-  - deploy_git.py    — git clone/pull + first-party squat-defence
-  - deploy_sync.py   — Registry + unified_config sync, skeleton derivation
-  - validation.py    — phase-1 static checks
-  - validation_runtime.py — phase-2 runtime checks (R1-R12)
-  - validation_report.py  — phase-3 merge + LLM-friendly report
-"""
+"""Developer Portal — deploy & submit handlers."""
 import asyncio
 import json
 import os
@@ -302,5 +293,3 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     refresh_panels=["sidebar", "dashboard"],
     )
 
-
-# submit_for_review handler moved to handlers_submit.py (file split — workspace rule 6).

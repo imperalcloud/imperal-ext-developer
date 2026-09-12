@@ -68,70 +68,7 @@ async def _ensure_app_in_registry(app_id: str, owner_id: str, display_name: str 
             log.warning(f"Registry: failed to ensure app '{app_id}': {e}")
 
 
-def _derive_skeleton_sections_from_ext(ext) -> list[dict]:
-    """Derive Registry skeleton_sections payload from a loaded Extension.
-
-    Two-source derivation so both styles produce Registry rows:
-
-      (A) Primary — ``@ext.skeleton(section_name, alert=…, ttl=…)`` decorator
-          metadata stashed on ``ToolDef._skeleton`` (SDK 1.5.22+).
-      (B) Fallback — naming convention: any tool named
-          ``skeleton_refresh_<X>`` becomes a section. A sibling
-          ``skeleton_alert_<X>`` tool enables ``alert_on_change=True``.
-
-    Pure function — no I/O. Exercised by ``tests/test_skeleton_sync.py``.
-
-    Invariants:
-      - I-SKEL-AUTO-DERIVE-1
-      - I-PURGE-SKELETON-SCOPE
-    """
-    if ext is None or not hasattr(ext, "tools"):
-        return []
-    tools = ext.tools or {}
-
-    sections: list[dict] = []
-    seen: set = set()
-
-    # (A) Metadata from @ext.skeleton decorator
-    for activity_name, tool_def in tools.items():
-        meta = getattr(tool_def, "_skeleton", None)
-        if not meta or not isinstance(meta, dict):
-            continue
-        section_name = meta.get("section_name") or ""
-        if not section_name:
-            continue
-        alert_activity = f"{_SKELETON_ALERT_PREFIX}{section_name}"
-        has_alert = alert_activity in tools
-        sections.append({
-            "name": section_name,
-            "refresh_activity": activity_name,
-            "alert_activity": alert_activity if has_alert else meta.get("alert_activity"),
-            "ttl": int(meta.get("ttl", 300) or 300),
-            "alert_on_change": bool(meta.get("alert_on_change") or has_alert),
-        })
-        seen.add(section_name)
-
-    # (B) Naming convention fallback
-    for activity_name in tools.keys():
-        if not isinstance(activity_name, str):
-            continue
-        if not activity_name.startswith(_SKELETON_REFRESH_PREFIX):
-            continue
-        section_name = activity_name[len(_SKELETON_REFRESH_PREFIX):]
-        if not section_name or section_name in seen:
-            continue
-        alert_activity = f"{_SKELETON_ALERT_PREFIX}{section_name}"
-        has_alert = alert_activity in tools
-        sections.append({
-            "name": section_name,
-            "refresh_activity": activity_name,
-            "alert_activity": alert_activity if has_alert else None,
-            "ttl": 300,
-            "alert_on_change": has_alert,
-        })
-        seen.add(section_name)
-
-    return sections
+from skeleton_derive import _derive_skeleton_sections_from_ext
 
 
 async def _sync_tools_to_registry(app_id: str, app_dir: str, owner_id: str = "") -> int:

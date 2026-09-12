@@ -3851,7 +3851,6 @@
       "chain_callable": true,
       "effects": [],
       "id_projection": "",
-      "data_model": "AppPricingRecord",
       "params_schema": {
         "type": "object",
         "title": "GetPricingParams",
