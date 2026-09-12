@@ -213,3 +213,28 @@ class SkeletonConfigReceipt(sdl.Entity):
             data.setdefault("title", data.get("app_id") or "Skeleton config")
             data.setdefault("kind", "extension")
         return data
+
+
+# ---------------------------------------------------------------------------
+# App pricing inspection (read — read-back verification)
+# ---------------------------------------------------------------------------
+class AppPricingRecord(sdl.Entity):
+    """Read-back verification record for get_pricing (kind='app_pricing')."""
+
+    app_id: Optional[str] = None
+    pricing_model: Optional[str] = None
+    pricing_config: Optional[Any] = None
+    revenue_split_dev: Optional[int] = None
+    status: Optional[str] = None
+    monthly_price: Optional[str] = None
+    tool_prices: Optional[Any] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sdl_canon(cls, data):
+        if isinstance(data, dict):
+            data["id"] = data.get("app_id") or "pricing"
+            data.setdefault("title", f"Pricing for {data.get('app_id', 'app')}")
+            data.setdefault("kind", "app_pricing")
+        return data
+

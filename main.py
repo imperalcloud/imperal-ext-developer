@@ -36,6 +36,7 @@ import handlers_bulk_pricing  # noqa: F401  bulk_set_pricing (split from handler
 import handlers_deploy     # noqa: F401
 import handlers_payout     # noqa: F401
 import handlers_pricing    # noqa: F401  save_pricing/update_pricing (split from handlers) + verified write path
+import handlers_pricing_read  # noqa: F401  get_pricing tool (read-back verification)
 import handlers_secrets    # noqa: F401  EXT-SECRETS-V1 Secrets tab handlers
 import handlers_submit     # noqa: F401  submit_for_review (split from handlers_deploy)
 import handlers_skeleton   # noqa: F401  save_skeleton_ttl (split from handlers)

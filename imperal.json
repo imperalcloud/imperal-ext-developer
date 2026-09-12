@@ -2,9 +2,9 @@
   "manifest_schema_version": 3,
   "sdk_version": "5.13.0",
   "app_id": "developer",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "name": "Developer Portal",
-  "description": "Extension developer hub — publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
+  "description": "Extension developer hub \u2014 publish and manage your own extensions, track deployment status, view earnings analytics, request payouts, and validate manifests against federal SDK rules.",
   "icon": "icon.svg",
   "actions_explicit": true,
   "system": true,
@@ -739,7 +739,7 @@
     },
     {
       "name": "update_app_info",
-      "description": "Update app info (name, descriptions shown in the Marketplace, category, git URL) — works on active apps",
+      "description": "Update app info (name, descriptions shown in the Marketplace, category, git URL) \u2014 works on active apps",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1079,7 +1079,7 @@
         "description": "Target SEVERAL of your own apps at once.",
         "properties": {
           "app_ids": {
-            "description": "The apps to act on — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
+            "description": "The apps to act on \u2014 exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
             "items": {
               "type": "string"
             },
@@ -1145,7 +1145,7 @@
     },
     {
       "name": "bulk_suspend_apps",
-      "description": "Pause/suspend SEVERAL of your apps at once — takes them off the Marketplace so pricing can be edited. Use for 'pause all my apps', 'suspend these two'.",
+      "description": "Pause/suspend SEVERAL of your apps at once \u2014 takes them off the Marketplace so pricing can be edited. Use for 'pause all my apps', 'suspend these two'.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1156,7 +1156,7 @@
         "description": "Target SEVERAL of your own apps at once.",
         "properties": {
           "app_ids": {
-            "description": "The apps to act on — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
+            "description": "The apps to act on \u2014 exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
             "items": {
               "type": "string"
             },
@@ -1233,7 +1233,7 @@
         "description": "Target SEVERAL of your own apps at once.",
         "properties": {
           "app_ids": {
-            "description": "The apps to act on — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
+            "description": "The apps to act on \u2014 exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop. Example: ['matomo-analytics', 'article-writer'].",
             "items": {
               "type": "string"
             },
@@ -1310,7 +1310,7 @@
         "description": "Price SEVERAL of your own apps in one call.",
         "properties": {
           "app_ids": {
-            "description": "The apps to price — exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop.",
+            "description": "The apps to price \u2014 exact app_ids, display names, or partials of either; each is resolved against YOUR apps. Pass EVERY app the user named in ONE call; do not loop.",
             "items": {
               "type": "string"
             },
@@ -1336,7 +1336,7 @@
               }
             ],
             "default": null,
-            "description": "Per-action prices in tokens, {action_name: price}, applied to EVERY named app. An action not listed keeps its current price; 0 makes it free. An app lacking a named action is reported as a failure for that app only — the others still change. Example: {'search': 50, 'export': 200}.",
+            "description": "Per-action prices in tokens, {action_name: price}, applied to EVERY named app. An action not listed keeps its current price; 0 makes it free. An app lacking a named action is reported as a failure for that app only \u2014 the others still change. Example: {'search': 50, 'export': 200}.",
             "title": "Tool Prices"
           },
           "monthly_price": {
@@ -1670,7 +1670,7 @@
         "type": "object"
       },
       "return_schema": {
-        "description": "Receipt for request_payout (kind='payout').\n\nMirrors the raw auth-gateway POST /v1/developer/payouts/request response\n(loosely typed — known keys carried as Optional pass-through; the request\namount/method come from params, the gateway echoes id/status when present).",
+        "description": "Receipt for request_payout (kind='payout').\n\nMirrors the raw auth-gateway POST /v1/developer/payouts/request response\n(loosely typed \u2014 known keys carried as Optional pass-through; the request\namount/method come from params, the gateway echoes id/status when present).",
         "properties": {
           "id": {
             "anyOf": [
@@ -2350,7 +2350,7 @@
     },
     {
       "name": "save_pricing",
-      "description": "Set what an app's actions cost (per-action token prices), its pricing model, or its monthly price — then verify the change actually stored. Actions not mentioned keep their price; 0 makes one free. Requires a paused/draft app. For SEVERAL apps use bulk_set_pricing.",
+      "description": "Set what an app's actions cost (per-action token prices), its pricing model, or its monthly price \u2014 then verify the change actually stored. Actions not mentioned keep their price; 0 makes one free. Requires a paused/draft app. For SEVERAL apps use bulk_set_pricing.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -2383,7 +2383,7 @@
               }
             ],
             "default": null,
-            "description": "Per-action prices in tokens, keyed by the action/function name — e.g. {'search_web': 50, 'fetch_page': 20}. Actions you do not mention keep their current price; pass 0 to make one free again.",
+            "description": "Per-action prices in tokens, keyed by the action/function name \u2014 e.g. {'search_web': 50, 'fetch_page': 20}. Actions you do not mention keep their current price; pass 0 to make one free again.",
             "title": "Tool Prices"
           },
           "monthly_price": {
@@ -3222,7 +3222,7 @@
     },
     {
       "name": "submit_for_review",
-      "description": "Submit (publish) an app for admin Marketplace review — moves a draft / dev-mode app into the review queue (e.g. 'publish my app X', 'submit X for review')",
+      "description": "Submit (publish) an app for admin Marketplace review \u2014 moves a draft / dev-mode app into the review queue (e.g. 'publish my app X', 'submit X for review')",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -3485,7 +3485,7 @@
     },
     {
       "name": "deploy_ir",
-      "description": "Deploy a composed declarative IR app (app.ir.json) — validate, register, and sync to the registry",
+      "description": "Deploy a composed declarative IR app (app.ir.json) \u2014 validate, register, and sync to the registry",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -3843,6 +3843,57 @@
       "long_running": false,
       "scopes": [],
       "owner_chat_tool": "tool_developer_chat"
+    },
+    {
+      "name": "get_pricing",
+      "description": "Inspect an app's current verified pricing model, per-action prices, and revenue split.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "data_model": "AppPricingRecord",
+      "params_schema": {
+        "type": "object",
+        "title": "GetPricingParams",
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "App id to inspect pricing for"
+          }
+        },
+        "required": [
+          "app_id"
+        ]
+      },
+      "return_schema": {
+        "type": "object",
+        "title": "AppPricingRecord",
+        "description": "Read-back verification record for get_pricing (kind='app_pricing').",
+        "properties": {
+          "app_id": {
+            "type": "string"
+          },
+          "pricing_model": {
+            "type": "string"
+          },
+          "pricing_config": {
+            "type": "object"
+          },
+          "revenue_split_dev": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "monthly_price": {
+            "type": "string"
+          },
+          "tool_prices": {
+            "type": "object"
+          }
+        }
+      }
     }
   ],
   "signals": [],

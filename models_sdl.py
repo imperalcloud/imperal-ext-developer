@@ -41,6 +41,7 @@ from models_app import (
     SubmitReceipt,
     DeployReceipt,
     SmokeReceipt,
+    AppPricingRecord,
 )
 from models_secrets import (
     SecretSaveReceipt,

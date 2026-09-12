@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from imperal_sdk.chat import ActionResult
 
 from app import chat, _gw_get, _gw_put, _user_id, EXTENSIONS_DIR
-from models_sdl import AppRecord
+from models_sdl import AppRecord, AppPricingRecord
 from pricing_catalog import known_tools as _known_tools
 from pricing_input import JsonObject, PricingConfig
 from pricing_rules import (
