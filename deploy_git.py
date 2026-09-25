@@ -119,6 +119,14 @@ async def _git_pull_or_clone(
         if not default_ref.startswith("origin/"):
             default_ref = "origin/" + default_ref.split("/")[-1]
 
+        # Checkout branch and hard-reset to upstream so local branch ref and HEAD are always aligned
+        branch_name = default_ref.split("/")[-1] if "/" in default_ref else default_ref
+        proc_checkout = await asyncio.create_subprocess_exec(
+            "git", "-C", app_dir, "checkout", "-B", branch_name, default_ref,
+            stdout=PIPE, stderr=PIPE,
+        )
+        _, checkout_err = await proc_checkout.communicate()
+
         # Hard-reset to upstream
         proc_reset = await asyncio.create_subprocess_exec(
             "git", "-C", app_dir, "reset", "--hard", default_ref,
@@ -129,6 +137,11 @@ async def _git_pull_or_clone(
             for fallback in ("origin/main", "origin/master"):
                 if fallback == default_ref:
                     continue
+                fb_branch = fallback.split("/")[-1]
+                await (await asyncio.create_subprocess_exec(
+                    "git", "-C", app_dir, "checkout", "-B", fb_branch, fallback,
+                    stdout=PIPE, stderr=PIPE,
+                )).communicate()
                 proc_fb = await asyncio.create_subprocess_exec(
                     "git", "-C", app_dir, "reset", "--hard", fallback,
                     stdout=PIPE, stderr=PIPE,

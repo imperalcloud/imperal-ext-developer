@@ -225,25 +225,67 @@ def get_disk_version(app_dir: str) -> dict | None:
             result["name"] = data.get("name", data.get("app_id", ""))
         except Exception:
             pass
-    git_head = os.path.join(app_dir, ".git", "refs", "heads", "main")
-    if not os.path.isfile(git_head):
-        git_head = os.path.join(app_dir, ".git", "refs", "heads", "master")
-    if os.path.isfile(git_head):
-        try:
-            with open(git_head, "r") as f:
-                result["commit"] = f.read().strip()[:8]
-        except Exception:
-            pass
-    if not result.get("commit"):
-        head_file = os.path.join(app_dir, ".git", "HEAD")
+
+    git_dir = os.path.join(app_dir, ".git")
+    if os.path.isdir(git_dir):
+        # 1. Inspect .git/HEAD first (truth of what is checked out on disk)
+        head_file = os.path.join(git_dir, "HEAD")
         if os.path.isfile(head_file):
             try:
-                with open(head_file, "r") as f:
+                with open(head_file, "r", encoding="utf-8") as f:
                     content = f.read().strip()
-                if not content.startswith("ref:"):
+                if content.startswith("ref:"):
+                    ref_path = content[4:].strip()
+                    ref_file = os.path.join(git_dir, ref_path)
+                    if os.path.isfile(ref_file):
+                        with open(ref_file, "r", encoding="utf-8") as f:
+                            result["commit"] = f.read().strip()[:8]
+                    else:
+                        # Check packed-refs
+                        packed_file = os.path.join(git_dir, "packed-refs")
+                        if os.path.isfile(packed_file):
+                            with open(packed_file, "r", encoding="utf-8") as f:
+                                for line in f:
+                                    if line.startswith("#") or line.startswith("^"):
+                                        continue
+                                    parts = line.strip().split()
+                                    if len(parts) == 2 and parts[1] == ref_path:
+                                        result["commit"] = parts[0][:8]
+                                        break
+                elif len(content) >= 7:
+                    # Detached HEAD
                     result["commit"] = content[:8]
             except Exception:
                 pass
+
+        # 2. Fallback to branch refs if HEAD was not resolved
+        if not result.get("commit"):
+            for b in ("main", "master"):
+                git_head = os.path.join(git_dir, "refs", "heads", b)
+                if os.path.isfile(git_head):
+                    try:
+                        with open(git_head, "r", encoding="utf-8") as f:
+                            c = f.read().strip()
+                            if c:
+                                result["commit"] = c[:8]
+                                break
+                    except Exception:
+                        pass
+
+        # 3. Fallback to git rev-parse HEAD
+        if not result.get("commit"):
+            try:
+                import subprocess
+                out = subprocess.check_output(
+                    ["git", "-C", app_dir, "rev-parse", "HEAD"],
+                    stderr=subprocess.DEVNULL, timeout=2,
+                )
+                c = out.decode().strip()
+                if c:
+                    result["commit"] = c[:8]
+            except Exception:
+                pass
+
     return result if result else None
 
 
