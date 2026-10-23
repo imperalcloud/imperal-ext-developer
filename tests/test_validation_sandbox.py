@@ -17,7 +17,7 @@ def test_only_values_that_cannot_be_secrets_survive(monkeypatch):
         "IMPERAL_GROUNDING_ENABLED": "true",
         "IMPERAL_MAX_TASKS_PER_USER": "8",
         "KERNEL_REDIS_HOST": "10.88.0.1",
-        "WEBHOOK_URL": "https://hooks.example/x?sig=abc#frag",
+        "WEBHOOK_URL": "https://hooks.example/services/T0/B0/pathsecret?sig=abc#frag",
         "AUTH_SERVICE_TOKEN": "real-token",
         "ANTHROPIC_API_KEY": "sk-real",
         "REDIS_PASS": "pw",
@@ -30,16 +30,16 @@ def test_only_values_that_cannot_be_secrets_survive(monkeypatch):
     env = vr._validation_env()
     for name in ("AUTH_SERVICE_TOKEN", "ANTHROPIC_API_KEY", "REDIS_PASS", "IMPERAL_CALL_TOKEN_HMAC_SECRET"):
         assert env[name] == vr._PLACEHOLDER
-    assert env["DATABASE_URL"] == "mysql+aiomysql://db.internal:3306/imperal_auth"
-    assert env["REDIS_URL"] == "redis://10.88.0.1:6379/0"
-    assert env["WEBHOOK_URL"] == "https://hooks.example/x"
+    assert env["DATABASE_URL"] == "mysql+aiomysql://db.internal:3306"
+    assert env["REDIS_URL"] == "redis://10.88.0.1:6379"
+    assert env["WEBHOOK_URL"] == "https://hooks.example"
     assert env["SOME_NEW_THING"] == vr._PLACEHOLDER
     assert env["IMPERAL_GROUNDING_ENABLED"] == "true"
     assert env["IMPERAL_MAX_TASKS_PER_USER"] == "8"
     assert env["KERNEL_REDIS_HOST"] == "10.88.0.1"
     assert env["NOTES_API_URL"] == "http://10.88.0.5:8080"
     assert env["PATH"] == "/usr/bin"
-    assert not any(v in str(env.values()) for v in ("real-token", "sk-real", "pw", "sig=", "opaque"))
+    assert not any(v in str(env.values()) for v in ("real-token", "sk-real", "pw", "sig=", "opaque", "pathsecret"))
 
 
 def test_the_validator_runs_as_nobody_in_its_own_namespaces(monkeypatch, tmp_path):

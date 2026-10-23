@@ -10,7 +10,7 @@ files), and every process it starts dies with it. It runs as nobody with no
 capabilities and no new privileges.
 
 Its environment keeps a value only when the value cannot be a secret: a URL
-without user, password, query or fragment, a host, port, path, queue or
+reduced to scheme://host:port, a host, port, path, queue or
 namespace setting, or a plain flag or number. Every other variable keeps its
 name with a placeholder value, so an extension that requires it at import
 still loads. Validation results are unchanged (46 installed extensions
@@ -44,7 +44,8 @@ _STANDARD = {"PATH", "LANG", "LC_ALL", "TZ", "PYTHONUNBUFFERED"}
 
 
 def _plain_url(value: str) -> str | None:
-    """The URL without user, password, query and fragment, or None if it is not a URL."""
+    """Only scheme://host:port of a URL (user, password, path, query and fragment can all
+    carry a secret, e.g. a webhook token in the path), or None if it is not a URL."""
     try:
         parts = urlsplit(value)
         if not parts.scheme or not parts.hostname or " " in value:
@@ -53,7 +54,7 @@ def _plain_url(value: str) -> str | None:
         netloc = host if parts.port is None else f"{host}:{parts.port}"
     except ValueError:
         return None
-    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
+    return urlunsplit((parts.scheme, netloc, "", "", ""))
 
 
 def _validation_env() -> dict:
