@@ -29,7 +29,8 @@ async def smoke_ir(ctx, params: SmokeIRParams) -> ActionResult:
     try:
         out = await smoke_run_impl(params.ir_dict, params.function, params.args or {})
     except Exception as e:  # never leak a raw stack to the agent
-        return ActionResult.error(f"Smoke run failed: {e}")
+        # the kind of failure with its text (2026-11-13: a KeyError reached the agent as the bare word 'data')
+        return ActionResult.error(f"Smoke run failed: {type(e).__name__}: {e}")
     return ActionResult.success(
         data={"ok": out.get("ok", False), "result": out.get("result", {}), "trace": out.get("trace", {})},
         summary=("Smoke run OK" if out.get("ok") else "Smoke run reported a problem"),
