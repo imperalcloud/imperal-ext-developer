@@ -6,17 +6,27 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL env var is required for developer extension "
-        "(no plaintext credential fallback -- federal/CJIS)"
-    )
 
-_engine = create_async_engine(DATABASE_URL, pool_pre_ping=True, pool_size=3, max_overflow=5)
-_AsyncSession = sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+_engine = None
+_AsyncSession = None
+
+
+def _get_engine():
+    global _engine, _AsyncSession
+    if _engine is None:
+        url = os.environ.get("DATABASE_URL")
+        if not url:
+            raise RuntimeError(
+                "DATABASE_URL env var is required for developer extension "
+                "(no plaintext credential fallback -- federal/CJIS)"
+            )
+        _engine = create_async_engine(url, pool_pre_ping=True, pool_size=3, max_overflow=5)
+        _AsyncSession = sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+    return _engine
 
 
 async def _session() -> AsyncSession:
+    _get_engine()
     return _AsyncSession()
 
 
