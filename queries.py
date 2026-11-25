@@ -1,6 +1,7 @@
 """Developer Portal — direct MySQL analytics queries."""
 import os
-from typing import Optional
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Optional
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
@@ -25,9 +26,13 @@ def _get_engine():
     return _engine
 
 
-async def _session() -> AsyncSession:
+@asynccontextmanager
+async def _session() -> AsyncIterator[AsyncSession]:
     _get_engine()
-    return _AsyncSession()
+    if _AsyncSession is None:
+        raise RuntimeError("Database session factory not initialized")
+    async with _AsyncSession() as session:
+        yield session
 
 
 def _mask_user(uid: str) -> str:
@@ -51,7 +56,7 @@ async def get_app_stats(developer_id: str, app_id: Optional[str], days: int = 30
           {app_filter}
           AND created_at >= NOW() - INTERVAL :days DAY
     """
-    async with _AsyncSession() as session:
+    async with _session() as session:
         params = {"dev_id": developer_id, "days": days}
         if app_id:
             params["app_id"] = app_id
@@ -76,7 +81,7 @@ async def get_revenue_chart(developer_id: str, app_id: Optional[str], days: int 
         GROUP BY DATE(created_at)
         ORDER BY day ASC
     """
-    async with _AsyncSession() as session:
+    async with _session() as session:
         params = {"dev_id": developer_id, "days": days}
         if app_id:
             params["app_id"] = app_id
@@ -99,7 +104,7 @@ async def get_top_functions(developer_id: str, app_id: Optional[str], days: int 
         ORDER BY calls DESC
         LIMIT 20
     """
-    async with _AsyncSession() as session:
+    async with _session() as session:
         params = {"dev_id": developer_id, "days": days}
         if app_id:
             params["app_id"] = app_id
@@ -118,7 +123,7 @@ async def get_transactions(developer_id: str, app_id: Optional[str],
         ORDER BY created_at DESC
         LIMIT :lim OFFSET :off
     """
-    async with _AsyncSession() as session:
+    async with _session() as session:
         params = {"dev_id": developer_id, "lim": limit, "off": offset}
         if app_id:
             params["app_id"] = app_id
@@ -147,7 +152,7 @@ async def get_deploy_history(app_id: str, limit: int = 20) -> list:
         ORDER BY deployed_at DESC
         LIMIT :lim
     """
-    async with _AsyncSession() as session:
+    async with _session() as session:
         rows = (await session.execute(text(sql), {"app_id": app_id, "lim": limit})).fetchall()
     return [
         {
@@ -162,22 +167,26 @@ async def get_deploy_history(app_id: str, limit: int = 20) -> list:
 
 async def get_latest_deploy(app_id: str) -> dict | None:
     """Latest successful or warning deploy for 'Current Version' display."""
-    sql = """
-        SELECT commit_sha, status, deployed_at
-        FROM app_deploys
-        WHERE app_id = :app_id AND status IN ('success', 'warning')
-        ORDER BY deployed_at DESC
-        LIMIT 1
-    """
-    async with _AsyncSession() as session:
-        row = (await session.execute(text(sql), {"app_id": app_id})).fetchone()
-    if not row:
+    try:
+        sql = """
+            SELECT commit_sha, status, deployed_at
+            FROM app_deploys
+            WHERE app_id = :app_id AND status IN ('success', 'warning')
+            ORDER BY deployed_at DESC
+            LIMIT 1
+        """
+        async with _session() as session:
+            row = (await session.execute(text(sql), {"app_id": app_id})).fetchone()
+        if not row:
+            return None
+        return {
+            "commit": (row.commit_sha or "")[:8],
+            "status": row.status or "",
+            "deployed_at": str(row.deployed_at) if row.deployed_at else "",
+        }
+    except Exception:
+        # Graceful fallback when DB is unconfigured or unavailable
         return None
-    return {
-        "commit": (row.commit_sha or "")[:8],
-        "status": row.status or "",
-        "deployed_at": str(row.deployed_at) if row.deployed_at else "",
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -197,7 +206,7 @@ async def get_earnings_total(developer_id: str) -> dict:
         "FROM developer_payouts WHERE developer_id = :dev_id "
         "AND status IN ('approved', 'paid')"
     )
-    async with _AsyncSession() as session:
+    async with _session() as session:
         total = int((await session.execute(text(total_sql), {"dev_id": developer_id})).scalar() or 0)
         paid = int((await session.execute(text(paid_sql), {"dev_id": developer_id})).scalar() or 0)
     return {"total": total, "paid": paid, "available": max(0, total - paid)}

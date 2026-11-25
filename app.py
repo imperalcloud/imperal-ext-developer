@@ -27,7 +27,7 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # ---------------------------------------------------------------------------
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
-ext = Extension("developer", version="1.8.5",
+ext = Extension("developer", version="1.8.6",
     capabilities=[
         # Developer registration + app lifecycle (create/deploy/suspend/delete/update)
         "developer:profile:read", "developer:profile:write",
