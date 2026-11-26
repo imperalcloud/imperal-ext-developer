@@ -123,7 +123,7 @@ def test_every_gateway_helper_passes_the_path_check_and_the_paths_the_extension_
     import app
     for helper in (app._gw_get, app._gw_post, app._gw_put, app._gw_delete):
         assert "_acting_headers(path" in inspect.getsource(helper)
-    assert "_refuse_unclean_path(path)" in inspect.getsource(app._acting_headers)
+    assert "_refuse_unclean_path(path, body)" in inspect.getsource(app._acting_headers)
     assert app._acting_headers("/v1/admin/apps/wordpress-hub/deploy-source?user_id=imp_u_tE-J9c_NxX") == {
         "X-Acting-User": "imp_u_tE-J9c_NxX"}
     for ok in ("/v1/developer/apps?user_id=imp_u_a", "/v1/marketplace/categories/catalog",
@@ -151,3 +151,21 @@ def test_an_acting_user_can_stand_only_first_in_a_query(path):
     import app
     with pytest.raises(ValueError, match="refused"):
         app._acting_headers(path, {})
+
+
+def test_a_call_with_a_body_never_takes_its_acting_user_from_the_path():
+    # second review finding 2026-11-26: PUT /v1/developer/apps/{app_id} ends in the app_id -- an app_id of
+    # "x?user_id=<admin>" gave the path a query of the caller's making
+    import app
+    for helper in (app._gw_post, app._gw_put, app._gw_delete):
+        assert "_acting_headers(path, data, body=True)" in inspect.getsource(helper)
+    assert "_acting_headers(path=path)" in inspect.getsource(app._gw_get)
+    with pytest.raises(ValueError, match="refused"):
+        app._acting_headers("/v1/developer/apps/x?user_id=imp_u_admin", {"description": "d"}, body=True)
+    with pytest.raises(ValueError, match="refused"):
+        app._acting_headers("/v1/developer/apps/x?user_id=imp_u_admin", None, body=True)
+    # the body's own user stays the acting one; the panel config path (no user in it) still passes
+    assert app._acting_headers("/v1/developer/apps/x", {"user_id": "imp_u_me"}, body=True) == {"X-Acting-User": "imp_u_me"}
+    assert app._acting_headers("/v1/internal/config/app/x?tenant_id=default&app_id=x", {"config": {}}, body=True) == {}
+    # a read still names its user first in the query, as every read of the extension does
+    assert app._acting_headers("/v1/developer/apps/x?user_id=imp_u_me") == {"X-Acting-User": "imp_u_me"}
