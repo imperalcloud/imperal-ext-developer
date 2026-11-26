@@ -28,7 +28,7 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # ---------------------------------------------------------------------------
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
-ext = Extension("developer", version="1.8.7",
+ext = Extension("developer", version="1.8.8",
     capabilities=[
         # Developer registration + app lifecycle (create/deploy/suspend/delete/update)
         "developer:profile:read", "developer:profile:write",
@@ -83,17 +83,24 @@ def _get_http():
     return _http
 
 
-_GW_PATH = re.compile(r"/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*(\?user_id=[A-Za-z0-9_-]+)?")
+_GW_SEGMENTS = re.compile(r"(/[A-Za-z0-9_-]+)+")
+_GW_PARAM = re.compile(r"([A-Za-z0-9_]+)=([A-Za-z0-9_.-]+)")
 
 
 def _refuse_unclean_path(path: str) -> None:
-    """Every gateway call of this extension goes through ``_acting_headers`` -- here its path is held to
-    the one shape the extension builds: plain segments and at most ``?user_id=<id>``. A handler formats
-    what the caller typed (an app_id) into the path, and the acting user is read back from the path's
-    query: an app_id of ``x?user_id=<someone>&`` would name another user as the one acting -- on the admin
-    door, an admin (security review 2026-11-26). Refused here, for every handler at once, before any
-    request leaves."""
-    if not _GW_PATH.fullmatch(path or ""):
+    """Every gateway call of this extension goes through ``_acting_headers`` -- here its path is held to the
+    shapes the extension builds: plain segments, then plain ``key=value`` parameters. A handler formats what the
+    caller typed (an app_id) into the path, and the acting user is read back from the path's query: an app_id of
+    ``x?user_id=<someone>&`` would name another user as the one acting -- on the admin door, an admin (security
+    review 2026-11-26). So ``user_id`` may stand in a query only once and only FIRST, where the handler itself
+    put it: nothing formatted in after it can become the acting user. Refused here, for every handler at once,
+    before any request leaves."""
+    head, sep, query = (path or "").partition("?")
+    ok = bool(_GW_SEGMENTS.fullmatch(head))
+    if ok and sep:
+        params = [_GW_PARAM.fullmatch(part) for part in query.split("&")]
+        ok = all(params) and all(m.group(1) != "user_id" for m in params[1:])
+    if not ok:
         raise ValueError("refused: the app id or user id holds characters a gateway path may not carry")
 
 

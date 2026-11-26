@@ -107,7 +107,7 @@ def test_a_deploy_record_goes_to_the_door_and_its_loss_is_told(monkeypatch):
 
 @pytest.mark.parametrize("app_id", [
     "x?user_id=imp_u_admin&", "x%3Fuser_id=imp_u_admin", "../developer", "x/../../admin/apps/y", "x#", "x y", "",
-    "x&user_id=imp_u_admin", "x?a=1",
+    "x&user_id=imp_u_admin", "x?a=1", "x&a=1",
 ])
 def test_an_app_id_can_never_name_who_is_acting_or_leave_its_path(app_id):
     # the acting user is read from the path's query: what the caller typed must not be able to write one
@@ -129,3 +129,25 @@ def test_every_gateway_helper_passes_the_path_check_and_the_paths_the_extension_
     for ok in ("/v1/developer/apps?user_id=imp_u_a", "/v1/marketplace/categories/catalog",
                "/v1/developer/earnings/my_app-2?user_id=imp_u_a", "/v1/developer/payouts/request"):
         app._acting_headers(ok, {"user_id": "imp_u_a"})
+
+
+def test_the_panel_config_path_of_a_deploy_passes_and_names_nobody():
+    # live 2026-11-26 22:33 UTC: the first shape of this check knew only ``?user_id=`` and refused the path
+    # every deploy syncs its panels by -- "Panel config sync failed for wordpress-hub: refused"
+    import app
+    path = "/v1/internal/config/app/wordpress-hub?tenant_id=default&app_id=wordpress-hub"
+    assert app._acting_headers(path, {"config": {}}) == {}
+    assert app._acting_headers("/v1/developer/apps/x/_sync_manifest", {"manifest_json": {}}) == {}
+
+
+@pytest.mark.parametrize("path", [
+    "/v1/internal/config/app/x?tenant_id=default&app_id=x&user_id=imp_u_admin",     # an acting user slipped in last
+    "/v1/internal/config/app/x?tenant_id=default&user_id=imp_u_admin&app_id=x",
+    "/v1/developer/apps/x?user_id=imp_u_a&user_id=imp_u_admin",
+    "/v1/internal/config/app/x?tenant_id=default&app_id=x%26user_id%3Dimp_u_admin",
+    "/v1/internal/config/app/x?tenant_id=default&app_id=",
+])
+def test_an_acting_user_can_stand_only_first_in_a_query(path):
+    import app
+    with pytest.raises(ValueError, match="refused"):
+        app._acting_headers(path, {})
