@@ -30,6 +30,23 @@ class DeployParams(BaseModel):
     app_id: str = Field(..., description="App to deploy")
 
 
+async def app_for_deploy(ctx, app_id: str) -> tuple[dict, str]:
+    """The app a deploy is for, and the gateway door it was read by: ``developer`` — the caller's own
+    app; ``admin`` — another developer's app, read by a platform admin (the owner 2026-11-26: "an
+    admin can deploy for others ... and it must be safe"). The role in ``ctx`` is only the reason to
+    ask: the gateway proves the admin itself (its own lookup of the acting user) and refuses anyone
+    else. What an admin deploys is what the author deploys — the app's registered ``git_url`` at its
+    default branch, through the same validation and rollback; no address, branch or commit is taken
+    from the caller, and the app stays its author's. Raises when the caller may not deploy the app."""
+    uid = _user_id(ctx)
+    try:
+        return await _gw_get(f"/v1/developer/apps/{app_id}?user_id={uid}"), "developer"
+    except Exception:
+        if getattr(ctx.user, "role", "") != "admin":
+            raise
+    return await _gw_get(f"/v1/admin/apps/{app_id}/deploy-source?user_id={uid}"), "admin"
+
+
 @chat.function("deploy_app", action_type="write",
                event="developer.deploy_app", effects=["create:deployment"],
                description="Clone or pull extension from Git, validate, and report results",
@@ -40,9 +57,13 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
     app_id = params.app_id
 
     try:
-        app_info = await _gw_get(f"/v1/developer/apps/{app_id}?user_id={uid}")
+        app_info, door = await app_for_deploy(ctx, app_id)
     except Exception as e:
         return ActionResult.error(f"App not found: {e}")
+    # the app stays its author's whoever pressed deploy: the registry row is written for the owner
+    owner = (app_info.get("developer_id") or uid) if door == "admin" else uid
+    if door == "admin":
+        log.warning("admin_deploy admin=%s app_id=%s owner=%s", uid, app_id, owner)
 
     git_url = app_info.get("git_url", "")
     if not git_url.startswith("https://"):
@@ -80,7 +101,7 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         log.warning("squatting_refused uid=%s app_id=%s reason=%s", uid, app_id, error)
         return ActionResult.error(error, retryable=False)
     if action in ("clone_failed", "pull_failed"):
-        await _record_deploy(uid, app_id, "000000", "failed", error)
+        await _record_deploy(uid, app_id, "000000", "failed", error, door)
         return ActionResult.error(f"Git {action.replace('_', ' ')}: {error}")
 
     sha_proc = await asyncio.create_subprocess_exec(
@@ -172,7 +193,7 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         await _record_deploy(
             uid, app_id, commit_sha,
             db_status.get(deploy_status, deploy_status),
-            validation_json,
+            validation_json, door,
         )
 
         llm_report = report.get("llm_report", "")
@@ -185,14 +206,15 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
 
         return ActionResult.error(error_summary, retryable=False)
 
-    await _record_deploy(uid, app_id, commit_sha, db_status.get(deploy_status, deploy_status), validation_json)
+    recorded = await _record_deploy(
+        uid, app_id, commit_sha, db_status.get(deploy_status, deploy_status), validation_json, door)
 
     tools_synced = 0
     panels_synced = False
     icon_synced = False
     manifest_synced = False
     if deploy_status in ("passed", "warning"):
-        tools_synced = await _sync_tools_to_registry(app_id, app_dir, owner_id=uid)
+        tools_synced = await _sync_tools_to_registry(app_id, app_dir, owner_id=owner)
         panels_synced = await _sync_panel_config_to_unified_config(app_id, app_dir)
         # Icon and manifest blob push to auth-gw — see deploy_sync_artifacts.py
         # for the federal contract context (B-icon-db, EXT-SECRETS-V1).
@@ -277,6 +299,10 @@ async def deploy_app(ctx, params: DeployParams) -> ActionResult:
         summary += " Manifest synced to DB (secrets[] available)."
     if migrations_applied:
         summary += f" Migrations replayed: {len(migrations_applied)}."
+    if door == "admin":
+        summary += f" Deployed by a platform admin for its author {owner}."
+        if not recorded:
+            summary += " The deploy record was NOT written - tell the author by hand."
     if deploy_status == "failed" and llm_report:
         summary += "\n\n" + llm_report
     elif deploy_status == "warning" and llm_report:

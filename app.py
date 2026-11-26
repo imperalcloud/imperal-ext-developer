@@ -1,6 +1,7 @@
 """Developer Portal extension — core app, HTTP helpers, hooks."""
 import logging
 import os
+import re
 import urllib.parse
 import httpx
 from imperal_sdk import Extension
@@ -27,7 +28,7 @@ with open(_PROMPT_FILE, "r", encoding="utf-8") as _f:
 # ---------------------------------------------------------------------------
 # Extension + ChatExtension
 # ---------------------------------------------------------------------------
-ext = Extension("developer", version="1.8.6",
+ext = Extension("developer", version="1.8.7",
     capabilities=[
         # Developer registration + app lifecycle (create/deploy/suspend/delete/update)
         "developer:profile:read", "developer:profile:write",
@@ -82,11 +83,26 @@ def _get_http():
     return _http
 
 
+_GW_PATH = re.compile(r"/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*(\?user_id=[A-Za-z0-9_-]+)?")
+
+
+def _refuse_unclean_path(path: str) -> None:
+    """Every gateway call of this extension goes through ``_acting_headers`` -- here its path is held to
+    the one shape the extension builds: plain segments and at most ``?user_id=<id>``. A handler formats
+    what the caller typed (an app_id) into the path, and the acting user is read back from the path's
+    query: an app_id of ``x?user_id=<someone>&`` would name another user as the one acting -- on the admin
+    door, an admin (security review 2026-11-26). Refused here, for every handler at once, before any
+    request leaves."""
+    if not _GW_PATH.fullmatch(path or ""):
+        raise ValueError("refused: the app id or user id holds characters a gateway path may not carry")
+
+
 def _acting_headers(path: str = "", data: dict = None) -> dict:
     """Derive X-Acting-User from the user_id already carried in the body/query so
     the gateway resolves the acting user from the canonical header instead of its
     deprecated body/query fallback (AA-FU-7, one WARNING per call). Centralized
     here — no per-call-site churn; user_id stays in place as harmless compat."""
+    _refuse_unclean_path(path)
     uid = ""
     if isinstance(data, dict):
         uid = data.get("user_id") or ""

@@ -3,6 +3,8 @@ Developer Portal module — manage extension apps, deployments, earnings, and pa
 App lifecycle:
 - create_app: Register a new extension app (needs a unique app_id slug + an HTTPS Git URL)
 - deploy_app: Clone or pull the app from Git and deploy it to /opt/extensions/
+  A platform admin may deploy ANOTHER developer's app the same way (by its app_id): the code is the author's own
+  registered Git main branch, the app stays the author's, and the author sees who deployed which commit.
 - update_app_info: Update an app's display name, description, category, or Git URL
 - suspend_app: Pause an app (required before editing pricing or deleting it)
 - delete_app: Permanently delete a suspended/draft app (the user must type the app_id to confirm)

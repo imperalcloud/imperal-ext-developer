@@ -15,15 +15,21 @@ _SKELETON_REFRESH_PREFIX = "skeleton_refresh_"
 _SKELETON_ALERT_PREFIX = "skeleton_alert_"
 
 
-async def _record_deploy(uid, app_id, sha, status, error_msg):
-    """Record deploy — awaited, not fire-and-forget."""
+async def _record_deploy(uid, app_id, sha, status, error_msg, door="developer"):
+    """Record deploy — awaited, not fire-and-forget. ``door`` is the gateway door the app was read
+    by (``handlers_deploy.app_for_deploy``): ``developer`` — the author's own; ``admin`` — a platform
+    admin deploying another developer's app, where the gateway itself proves the admin and writes the
+    admin's id as who deployed. Says whether the record was written: for an admin's deploy of someone
+    else's app the record is the trail the author reads, so its loss is told, never passed in silence."""
     try:
-        await _gw_post(f"/v1/developer/apps/{app_id}/deploys", {
+        await _gw_post(f"/v1/{door}/apps/{app_id}/deploys", {
             "user_id": uid, "commit_sha": sha,
             "status": status, "error_message": error_msg,
         })
-    except Exception:
-        pass
+        return True
+    except Exception as exc:
+        log.warning("deploy record not written door=%s uid=%s app_id=%s sha=%s: %s", door, uid, app_id, sha, exc)
+        return False
 
 
 def _manifest_display_name(app_id: str) -> str:
